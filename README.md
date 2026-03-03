@@ -14,7 +14,7 @@ iOS 소셜 로그인을 간편하게 통합할 수 있는 Swift Package입니다
 |--------|----------|
 | 카카오 | ✅ |
 | 네이버 | ✅ |
-| 구글   | 준비 중 |
+| 구글   | ✅ |
 | 애플   | 준비 중 |
 
 ## 설치
@@ -41,7 +41,9 @@ dependencies: [
 import ESTLoginKit
 
 let config = ESTLoginConfiguration.Builder()
-    .useKakao(appKey: "YOUR_KAKAO_NATIVE_APP_KEY")
+    .useKakao(KakaoConfiguration(appKey: "YOUR_KAKAO_NATIVE_APP_KEY"))
+    .useNaver(NaverConfiguration(appName: "앱이름", clientID: "CLIENT_ID", clientSecret: "SECRET", urlScheme: "YOUR_SCHEME"))
+    .useGoogle() // GIDClientID는 Info.plist에서 자동으로 읽습니다
     .build()
 
 await ESTLoginManager.shared.initialize(with: config)
