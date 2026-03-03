@@ -96,35 +96,59 @@ func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>)
 ```xml
 <key>LSApplicationQueriesSchemes</key>
 <array>
-    <string>kakaokompassauth</string> // 카카오
-    <string>naversearchapp</string> // 네이버
-    <string>naversearchthirdlogin</string> // 네이버
+    <string>kakaokompassauth</string> <!-- 카카오 -->
+    <string>naversearchapp</string> <!-- 네이버 -->
+    <string>naversearchthirdlogin</string> <!-- 네이버 -->
 </array>
-... // Google
+
+<!-- 구글 -->
 <key>GIDClientID</key>
-<string>클라이언트 ID</string>
+<string>YOUR_GOOGLE_CLIENT_ID</string>
 ```
 
 ### 4. 커스텀 URL 스킴
 
 ** 카카오 **
-서비스 앱 실행을 위해 커스텀 URL 스킴 설정을 합니다.  
-[Info] > [URL Types] > [URL Schemes] 항목에 네이티브 앱 키(Native App Key)를 kakao${NATIVE_APP_KEY} 형식으로 등록합니다.  
+서비스 앱 실행을 위해 커스텀 URL 스킴 설정을 합니다.
+[Info] > [URL Types] > [URL Schemes] 항목에 네이티브 앱 키(Native App Key)를 kakao${NATIVE_APP_KEY} 형식으로 등록합니다.
 예를 들어 네이티브 앱 키가 "123456789"라면 [URL Schemes]에 "kakao123456789"를 입력합니다.
 
 ** 네이버 **
+
+```xml
 <key>CFBundleURLTypes</key>
-  <array>
-    <dict>
-      <key>CFBundleURLName</key>
-      <string>{URL Scheme Identifier}</string>
-      <key>CFBundleURLSchemes</key>
-      <array>
-        <string>{콜백 URL Scheme}</string>
-      </array>
-    </dict>
-  </array>
-  
+<array>
+  <dict>
+    <key>CFBundleURLName</key>
+    <string>{URL Scheme Identifier}</string>
+    <key>CFBundleURLSchemes</key>
+    <array>
+      <string>{콜백 URL Scheme}</string>
+    </array>
+  </dict>
+</array>
+```
+
+** 구글 **
+Google Cloud Console에서 OAuth 클라이언트 ID를 생성하면 `GoogleService-Info.plist`를 다운로드할 수 있습니다.
+해당 파일의 `REVERSED_CLIENT_ID` 값을 [Info] > [URL Types] > [URL Schemes]에 등록합니다.
+
+```xml
+<key>CFBundleURLTypes</key>
+<array>
+  <dict>
+    <key>CFBundleTypeRole</key>
+    <string>Editor</string>
+    <key>CFBundleURLSchemes</key>
+    <array>
+      <string>com.googleusercontent.apps.YOUR_REVERSED_CLIENT_ID</string>
+    </array>
+  </dict>
+</array>
+```
+
+`REVERSED_CLIENT_ID`는 `GoogleService-Info.plist` 내에서 확인하거나, Google Cloud Console > OAuth 2.0 클라이언트 ID 상세 페이지의 **iOS URL 스킴** 항목에서 복사할 수 있습니다.
+
 ## 사용법
 
 ```swift
@@ -149,3 +173,5 @@ do {
 
 ## 레퍼런스
 - [Kakao developers](https://developers.kakao.com/docs/latest/ko/ios/getting-started#project)
+- [Naver Login SDK iOS](https://developers.naver.com/docs/login/ios/ios.md)
+- [Google Sign-In for iOS](https://developers.google.com/identity/sign-in/ios/start-integrating)
