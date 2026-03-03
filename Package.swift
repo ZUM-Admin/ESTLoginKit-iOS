@@ -33,7 +33,7 @@ let package = Package(
               .product(name: "NidThirdPartyLogin", package: "naveridlogin-sdk-ios-swift"),
               
               // Google
-              .product(name: "GoogleSignIn", package: "GoogleSignIn")
+              .product(name: "GoogleSignIn", package: "GoogleSignIn-iOS")
             ]
         ),
         .testTarget(

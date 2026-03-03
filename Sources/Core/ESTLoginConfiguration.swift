@@ -26,14 +26,23 @@ public struct ESTLoginConfiguration {
 
   let isGoogleEnabled: Bool
 
+
+  // MARK: - 애플
+  // Sign in with Apple은 Xcode 타겟의 Capability에서 활성화하면 되므로
+  // 별도 설정 모델 없이 useApple() 호출만으로 활성화됩니다.
+
+  let isAppleEnabled: Bool
+
   private init(
     kakaoConfig: KakaoConfiguration? = nil,
     naverConfig: NaverConfiguration? = nil,
-    isGoogleEnabled: Bool = false
+    isGoogleEnabled: Bool = false,
+    isAppleEnabled: Bool = false
   ) {
     self.kakaoConfig = kakaoConfig
     self.naverConfig = naverConfig
     self.isGoogleEnabled = isGoogleEnabled
+    self.isAppleEnabled = isAppleEnabled
   }
 
   // 빌더 클래스
@@ -41,6 +50,7 @@ public struct ESTLoginConfiguration {
     private var kakaoConfig: KakaoConfiguration?
     private var naverConfig: NaverConfiguration?
     private var isGoogleEnabled: Bool = false
+    private var isAppleEnabled: Bool = false
 
     public init() {}
 
@@ -59,11 +69,17 @@ public struct ESTLoginConfiguration {
       return self
     }
 
+    public func useApple() -> Builder {
+      self.isAppleEnabled = true
+      return self
+    }
+
     public func build() -> ESTLoginConfiguration {
       return ESTLoginConfiguration(
         kakaoConfig: kakaoConfig,
         naverConfig: naverConfig,
-        isGoogleEnabled: isGoogleEnabled
+        isGoogleEnabled: isGoogleEnabled,
+        isAppleEnabled: isAppleEnabled
       )
     }
   }

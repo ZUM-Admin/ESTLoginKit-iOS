@@ -15,7 +15,7 @@ iOS 소셜 로그인을 간편하게 통합할 수 있는 Swift Package입니다
 | 카카오 | ✅ |
 | 네이버 | ✅ |
 | 구글   | ✅ |
-| 애플   | 준비 중 |
+| 애플   | ✅ |
 
 ## 설치
 
@@ -44,6 +44,7 @@ let config = ESTLoginConfiguration.Builder()
     .useKakao(KakaoConfiguration(appKey: "YOUR_KAKAO_NATIVE_APP_KEY"))
     .useNaver(NaverConfiguration(appName: "앱이름", clientID: "CLIENT_ID", clientSecret: "SECRET", urlScheme: "YOUR_SCHEME"))
     .useGoogle() // GIDClientID는 Info.plist에서 자동으로 읽습니다
+    .useApple()  // Xcode Capability 설정만으로 활성화됩니다
     .build()
 
 await ESTLoginManager.shared.initialize(with: config)
@@ -151,6 +152,14 @@ Google Cloud Console에서 OAuth 클라이언트 ID를 생성하면 `GoogleServi
 
 `REVERSED_CLIENT_ID`는 `GoogleService-Info.plist` 내에서 확인하거나, Google Cloud Console > OAuth 2.0 클라이언트 ID 상세 페이지의 **iOS URL 스킴** 항목에서 복사할 수 있습니다.
 
+** 애플 **
+Sign in with Apple은 외부 SDK나 Info.plist 수정 없이 Xcode Capability 추가만으로 설정할 수 있습니다.
+
+1. Xcode에서 앱 타겟 선택
+2. **Signing & Capabilities** 탭으로 이동
+3. **+ Capability** 버튼 클릭
+4. **Sign in with Apple** 추가
+
 ## 사용법
 
 ```swift
@@ -177,3 +186,4 @@ do {
 - [Kakao developers](https://developers.kakao.com/docs/latest/ko/ios/getting-started#project)
 - [Naver Login SDK iOS](https://developers.naver.com/docs/login/ios/ios.md)
 - [Google Sign-In for iOS](https://developers.google.com/identity/sign-in/ios/start-integrating)
+- [Sign in with Apple](https://developer.apple.com/documentation/authenticationservices/implementing-user-authentication-with-sign-in-with-apple)

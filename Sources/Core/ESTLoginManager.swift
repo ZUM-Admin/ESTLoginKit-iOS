@@ -48,6 +48,9 @@ public final actor ESTLoginManager {
     case .google:
       provider = GoogleAuthProvider()
 
+    case .apple:
+      provider = AppleAuthProvider()
+
     default:
       throw AuthError.unsupportedPlatform
     }
