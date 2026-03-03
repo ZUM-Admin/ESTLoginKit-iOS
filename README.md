@@ -13,7 +13,7 @@ iOS 소셜 로그인을 간편하게 통합할 수 있는 Swift Package입니다
 | 플랫폼 | 지원 여부 |
 |--------|----------|
 | 카카오 | ✅ |
-| 네이버 | 준비 중 |
+| 네이버 | ✅ |
 | 구글   | 준비 중 |
 | 애플   | 준비 중 |
 
@@ -49,7 +49,7 @@ await ESTLoginManager.shared.initialize(with: config)
 
 ### 2. URL 핸들링
 
-카카오 로그인 콜백 처리를 위해 URL 핸들러를 등록합니다.
+로그인 콜백 처리를 위해 URL 핸들러를 등록합니다.
 
 **SwiftUI**
 
@@ -91,20 +91,40 @@ func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>)
 
 ### 3. Info.plist 설정
 
-카카오 로그인을 사용하려면 `Info.plist`에 아래 항목을 추가해야 합니다.
+로그인을 사용하려면 `Info.plist`에 아래 항목을 추가해야 합니다.
 
 ```xml
 <key>LSApplicationQueriesSchemes</key>
 <array>
-    <string>kakaokompassauth</string>
+    <string>kakaokompassauth</string> // 카카오
+    <string>naversearchapp</string> // 네이버
+    <string>naversearchthirdlogin</string> // 네이버
 </array>
+... // Google
+<key>GIDClientID</key>
+<string>클라이언트 ID</string>
 ```
 
 ### 4. 커스텀 URL 스킴
+
+** 카카오 **
 서비스 앱 실행을 위해 커스텀 URL 스킴 설정을 합니다.  
 [Info] > [URL Types] > [URL Schemes] 항목에 네이티브 앱 키(Native App Key)를 kakao${NATIVE_APP_KEY} 형식으로 등록합니다.  
 예를 들어 네이티브 앱 키가 "123456789"라면 [URL Schemes]에 "kakao123456789"를 입력합니다.
 
+** 네이버 **
+<key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleURLName</key>
+      <string>{URL Scheme Identifier}</string>
+      <key>CFBundleURLSchemes</key>
+      <array>
+        <string>{콜백 URL Scheme}</string>
+      </array>
+    </dict>
+  </array>
+  
 ## 사용법
 
 ```swift

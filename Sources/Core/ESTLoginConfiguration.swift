@@ -8,29 +8,49 @@
 import Foundation
 
 public struct ESTLoginConfiguration {
-  let kakaoAppKey: String?
+  
+  
+  // MARK: - 카카오
+  
+  let kakaoConfig: KakaoConfiguration?
+  
+  
+  // MARK: - 네이버
+  
+  let naverConfig: NaverConfiguration?
   
   private init(
-    kakaoAppKey: String? = nil
+    kakaoConfig: KakaoConfiguration? = nil,
+    naverConfig: NaverConfiguration? = nil
   ) {
-    self.kakaoAppKey = kakaoAppKey
+    self.kakaoConfig = kakaoConfig
+    self.naverConfig = naverConfig
   }
   
   // 빌더 클래스
   public class Builder {
-    private var kakaoAppKey: String?
+    private var kakaoConfig: KakaoConfiguration?
+    private var naverConfig: NaverConfiguration?
     
     public init() {}
     
-    public func useKakao(appKey: String) -> Builder {
-      self.kakaoAppKey = appKey
+    public func useKakao(_ config: KakaoConfiguration?) -> Builder {
+      self.kakaoConfig = config
+      return self
+    }
+    
+    public func useNaver(_ config: NaverConfiguration?) -> Builder {
+      self.naverConfig = config
       return self
     }
     
     public func build() -> ESTLoginConfiguration {
       return ESTLoginConfiguration(
-        kakaoAppKey: kakaoAppKey
+        kakaoConfig: kakaoConfig,
+        naverConfig: naverConfig
       )
     }
   }
 }
+
+

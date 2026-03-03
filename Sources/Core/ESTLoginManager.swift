@@ -10,6 +10,8 @@ import UIKit
 import KakaoSDKCommon
 import KakaoSDKAuth
 
+import NidThirdPartyLogin
+
 public final actor ESTLoginManager {
   public static let shared = ESTLoginManager()
   
@@ -18,8 +20,17 @@ public final actor ESTLoginManager {
   public func initialize(with config: ESTLoginConfiguration) {
     self.configuration = config
     
-    if let kakaoKey = config.kakaoAppKey {
-      KakaoSDK.initSDK(appKey: kakaoKey)
+    if let kakaoConfig = config.kakaoConfig {
+      KakaoSDK.initSDK(appKey: kakaoConfig.appKey)
+    }
+    
+    if let naverConfig = config.naverConfig {
+      NidOAuth.shared.initialize(
+        appName: naverConfig.appName,
+        clientId: naverConfig.clientID,
+        clientSecret: naverConfig.clientSecret,
+        urlScheme: naverConfig.urlScheme
+      )
     }
   }
   
@@ -29,6 +40,9 @@ public final actor ESTLoginManager {
     switch platform {
     case .kakao:
       provider = KakaoAuthProvider()
+      
+    case .naver:
+      provider = NaverAuthProvider()
     default:
       throw AuthError.unsupportedPlatform
     }
@@ -40,6 +54,10 @@ public final actor ESTLoginManager {
   public func handle(_ url: URL) -> Bool {
     if AuthApi.isKakaoTalkLoginUrl(url) {
       return AuthController.handleOpenUrl(url: url)
+    }
+    
+    if NidOAuth.shared.handleURL(url) == true {
+      return true
     }
     
     return false

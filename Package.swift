@@ -14,7 +14,9 @@ let package = Package(
         ),
     ],
     dependencies: [
-      .package(url: "https://github.com/kakao/kakao-ios-sdk", branch: "master")
+      .package(url: "https://github.com/kakao/kakao-ios-sdk", branch: "master"),
+      .package(url: "https://github.com/naver/naveridlogin-sdk-ios-swift", branch: "main"),
+      .package(url: "https://github.com/google/GoogleSignIn-iOS", exact: "9.0.0")
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -22,9 +24,16 @@ let package = Package(
         .target(
             name: "ESTLoginKit",
             dependencies: [
+              // KAKAO
               .product(name: "KakaoSDKCommon", package: "kakao-ios-sdk"),
               .product(name: "KakaoSDKAuth", package: "kakao-ios-sdk"),
-              .product(name: "KakaoSDKUser", package: "kakao-ios-sdk")
+              .product(name: "KakaoSDKUser", package: "kakao-ios-sdk"),
+              
+              // NAVER
+              .product(name: "NidThirdPartyLogin", package: "naveridlogin-sdk-ios-swift"),
+              
+              // Google
+              .product(name: "GoogleSignIn", package: "GoogleSignIn")
             ]
         ),
         .testTarget(
