@@ -8,5 +8,9 @@
 import Foundation
 
 public struct KakaoConfiguration {
-  let appKey: String
+  public let appKey: String
+
+  public init(appKey: String) {
+    self.appKey = appKey
+  }
 }

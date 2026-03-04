@@ -8,8 +8,15 @@
 import Foundation
 
 public struct NaverConfiguration {
-  let appName: String
-  let clientID: String
-  let clientSecret: String
-  let urlScheme: String
+  public let appName: String
+  public let clientID: String
+  public let clientSecret: String
+  public let urlScheme: String
+
+  public init(appName: String, clientID: String, clientSecret: String, urlScheme: String) {
+    self.appName = appName
+    self.clientID = clientID
+    self.clientSecret = clientSecret
+    self.urlScheme = urlScheme
+  }
 }
