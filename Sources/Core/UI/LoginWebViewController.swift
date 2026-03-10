@@ -20,10 +20,14 @@ public final class LoginWebViewController: UIViewController {
   ) {
     self.url = url
     self.externalUserAgent = externalUserAgent
+
     let config = WKWebViewConfiguration()
     config.preferences.javaScriptCanOpenWindowsAutomatically = true
 
     let webView = WKWebView(frame: CGRect.zero, configuration: config)
+    if #available(iOS 16.4, *) {
+      webView.isInspectable = true
+    }
     webView.allowsBackForwardNavigationGestures = true
     self.webView = webView
     super.init(nibName: nil, bundle: nil)
@@ -34,28 +38,24 @@ public final class LoginWebViewController: UIViewController {
     fatalError("init(coder:) has not been implemented")
   }
 
-  public override func viewWillAppear(_ animated: Bool) {
-    super.viewWillAppear(animated)
-    print("[LoginWebViewController] viewWillAppear — registering message handlers")
+  public override func viewDidLoad() {
+    super.viewDidLoad()
+    registerMessageHandlers()
+    setup()
+    setupLayout()
+  }
 
+  private func registerMessageHandlers() {
+    print("[LoginWebViewController] registering message handlers")
     WebViewMessage.allCases.forEach { message in
       self.webView.configuration.userContentController
-        .removeScriptMessageHandler(
-          forName: message.rawValue
-        )
-
+        .removeScriptMessageHandler(forName: message.rawValue)
       self.webView.configuration.userContentController.add(
         LeakAvoider(delegate: self),
         name: message.rawValue
       )
       print("[LoginWebViewController] registered handler: \(message.rawValue)")
     }
-  }
-
-  public override func viewDidLoad() {
-    super.viewDidLoad()
-    setup()
-    setupLayout()
   }
 
   private func setup() {

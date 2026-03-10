@@ -5,8 +5,8 @@ iOS 소셜 로그인을 간편하게 통합할 수 있는 Swift Package입니다
 ## 요구사항
 
 - iOS 16.0+
-- Swift 6.2+
-- Xcode 16+
+- Swift 5.7+
+- Xcode 15+
 
 ## 지원 플랫폼
 
@@ -25,7 +25,7 @@ iOS 소셜 로그인을 간편하게 통합할 수 있는 Swift Package입니다
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/your-org/ESTLoginKit", from: "1.0.0")
+    .package(url: "https://github.com/ZUM-Internet/ESTLoginKit-iOS", from: "1.0.0")
 ]
 ```
 
@@ -111,12 +111,12 @@ func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>)
 
 ### 4. 커스텀 URL 스킴
 
-** 카카오 **
+**카카오**
 서비스 앱 실행을 위해 커스텀 URL 스킴 설정을 합니다.
 [Info] > [URL Types] > [URL Schemes] 항목에 네이티브 앱 키(Native App Key)를 kakao${NATIVE_APP_KEY} 형식으로 등록합니다.
 예를 들어 네이티브 앱 키가 "123456789"라면 [URL Schemes]에 "kakao123456789"를 입력합니다.
 
-** 네이버 **
+**네이버**
 
 ```xml
 <key>CFBundleURLTypes</key>
@@ -132,7 +132,7 @@ func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>)
 </array>
 ```
 
-** 구글 **
+**구글**
 Google Cloud Console에서 OAuth 클라이언트 ID를 생성하면 `GoogleService-Info.plist`를 다운로드할 수 있습니다.
 해당 파일의 `REVERSED_CLIENT_ID` 값을 [Info] > [URL Types] > [URL Schemes]에 등록합니다.
 
@@ -152,7 +152,7 @@ Google Cloud Console에서 OAuth 클라이언트 ID를 생성하면 `GoogleServi
 
 `REVERSED_CLIENT_ID`는 `GoogleService-Info.plist` 내에서 확인하거나, Google Cloud Console > OAuth 2.0 클라이언트 ID 상세 페이지의 **iOS URL 스킴** 항목에서 복사할 수 있습니다.
 
-** 애플 **
+**애플**
 Sign in with Apple은 외부 SDK나 Info.plist 수정 없이 Xcode Capability 추가만으로 설정할 수 있습니다.
 
 1. Xcode에서 앱 타겟 선택
