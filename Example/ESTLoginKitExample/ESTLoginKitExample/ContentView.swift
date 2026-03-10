@@ -4,19 +4,26 @@
 //
 
 import SwiftUI
+import UIKit
+
 import ESTLoginKit
 
 struct ContentView: View {
 
   @StateObject private var viewModel = LoginViewModel()
+  @State private var showWebView = false
 
   var body: some View {
     NavigationStack {
       if viewModel.isLoggedIn {
         LoggedInView(token: viewModel.token, onLogout: viewModel.logout)
       } else {
-        LoginView(viewModel: viewModel)
+        LoginView(viewModel: viewModel, showWebView: $showWebView)
       }
+    }
+    .sheet(isPresented: $showWebView) {
+      LoginWebViewWrapper(url: URL(string: "https://test.estoneid.com/user/login")!)
+        .ignoresSafeArea()
     }
   }
 }
@@ -26,6 +33,7 @@ struct ContentView: View {
 private struct LoginView: View {
 
   @ObservedObject var viewModel: LoginViewModel
+  @Binding var showWebView: Bool
 
   var body: some View {
     VStack(spacing: 24) {
@@ -90,6 +98,18 @@ private struct LoginView: View {
           background: .black
         ) {
           viewModel.login(with: .apple)
+        }
+
+        Divider()
+          .padding(.vertical, 4)
+
+        LoginButton(
+          title: "웹뷰로 로그인",
+          icon: "globe",
+          foreground: .white,
+          background: Color(red: 0.2, green: 0.4, blue: 0.9)
+        ) {
+          showWebView = true
         }
       }
       .padding(.horizontal, 24)
@@ -170,6 +190,19 @@ private struct LoginButton: View {
       }
     }
   }
+}
+
+// MARK: - WebView Wrapper
+
+private struct LoginWebViewWrapper: UIViewControllerRepresentable {
+
+  let url: URL
+
+  func makeUIViewController(context: Context) -> LoginWebViewController {
+    LoginWebViewController(url: url)
+  }
+
+  func updateUIViewController(_ uiViewController: LoginWebViewController, context: Context) {}
 }
 
 #Preview {
