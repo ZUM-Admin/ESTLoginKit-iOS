@@ -8,11 +8,12 @@
 import Foundation
 
 struct RequestLoginDTO: Decodable {
-  let platform: Platform
+  let type: String
+  let provider: Provider
 }
 
 extension RequestLoginDTO {
-  enum Platform: String, Decodable {
+  enum Provider: String, Decodable {
     case kakao, naver, google, apple
   }
 }

@@ -117,18 +117,57 @@ extension LoginWebViewController: WKScriptMessageHandler {
   
   private func handleAction(_ action: WebViewMessage, payload: Decodable) {
     switch action {
-    case .requestLogin:
+    case .requestSnsLogin:
       guard let loginDTO = payload as? RequestLoginDTO,
-            let platfrom = LoginPlatform.init(rawValue: loginDTO.platform.rawValue)
+            let platform = LoginPlatform(rawValue: loginDTO.provider.rawValue)
       else {
         return
       }
-      
+
       Task {
-        let token = try await ESTLoginManager.shared.login(with: platfrom)
-        print(token)        
+        do {
+          let token = try await ESTLoginManager.shared.login(with: platform)
+          sendSuccessResult(
+            SNSLoginSuccessPayload(
+              provider: loginDTO.provider.rawValue,
+              authorizeToken: token,
+              refreshToken: "",
+              ci: "",
+              email: ""
+            )
+          )
+        } catch {
+          sendErrorResult(
+            SNSLoginErrorPayload(
+              code: errorCode(from: error),
+              message: error.localizedDescription,
+              provider: loginDTO.provider.rawValue
+            )
+          )
+        }
       }
     }
+  }
+
+  private func errorCode(from error: Error) -> String {
+    guard let authError = error as? AuthError else { return "sdk_error" }
+    switch authError {
+    case .unknown(nil): return "cancelled"
+    case .unknown:      return "sdk_error"
+    case .unsupportedPlatform: return "sdk_error"
+    }
+  }
+
+  @MainActor
+  private func sendSuccessResult(_ payload: SNSLoginSuccessPayload) {
+    guard let json = payload.jsonString else { return }
+    webView.evaluateJavaScript("window.onNativeSnsLoginResult(\(json))")
+  }
+
+  @MainActor
+  private func sendErrorResult(_ payload: SNSLoginErrorPayload) {
+    guard let json = payload.jsonString else { return }
+    webView.evaluateJavaScript("window.onNativeSnsLoginError(\(json))")
   }
 }
 

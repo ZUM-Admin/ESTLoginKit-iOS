@@ -8,11 +8,11 @@
 import Foundation
 
 enum WebViewMessage: String, CaseIterable {
-  case requestLogin
-  
+  case requestSnsLogin
+
   func decode(from data: Data) -> Decodable? {
     switch self {
-    case .requestLogin:
+    case .requestSnsLogin:
       return try? JSONDecoder.instance.decode(RequestLoginDTO.self, from: data)
     }
   }
