@@ -175,6 +175,45 @@ do {
 }
 ```
 
+## 웹뷰 로그인
+
+`LoginWebView` (SwiftUI) 또는 `LoginWebViewController` (UIKit)를 사용해 웹 기반 로그인을 구현할 수 있습니다.
+
+초기 URL에 `state` 쿼리 파라미터가 포함된 경우, 웹뷰는 이를 저장하고 이후 동일한 `state` 값을 가진 URL로 이동하는 시점에 `completion`을 호출합니다.
+
+> **dismiss는 호출부에서 처리해야 합니다.**
+> `LoginWebView` / `LoginWebViewController`는 화면 닫기를 직접 처리하지 않습니다.
+> push, modal, custom transition 등 표시 방식에 따라 `completion` 클로저 안에서 직접 dismiss/pop을 구현하세요.
+
+**SwiftUI**
+
+```swift
+.sheet(isPresented: $showWebView) {
+    LoginWebView(url: loginURL) {
+        showWebView = false
+    }
+    .ignoresSafeArea()
+}
+```
+
+**UIKit (modal)**
+
+```swift
+let vc = LoginWebViewController(url: loginURL) { [weak self] in
+    self?.dismiss(animated: true)
+}
+present(vc, animated: true)
+```
+
+**UIKit (push)**
+
+```swift
+let vc = LoginWebViewController(url: loginURL) { [weak self] in
+    self?.navigationController?.popViewController(animated: true)
+}
+navigationController?.pushViewController(vc, animated: true)
+```
+
 ## 에러 처리
 
 | 에러 | 설명 |

@@ -11,23 +11,26 @@ import WebKit
 public final class LoginWebViewController: UIViewController {
   private let url: URL
   private let externalUserAgent: String?
+  private let completion: (() -> Void)?
 
   private let webView: WKWebView
+  private var initialState: String?
 
   public init(
     url: URL,
-    externalUserAgent: String? = nil
+    externalUserAgent: String? = nil,
+    completion: (() -> Void)? = nil
   ) {
     self.url = url
     self.externalUserAgent = externalUserAgent
+    self.completion = completion
+    self.initialState = url.queryValue(for: "state")
 
     let config = WKWebViewConfiguration()
     config.preferences.javaScriptCanOpenWindowsAutomatically = true
 
     let webView = WKWebView(frame: CGRect.zero, configuration: config)
-    if #available(iOS 16.4, *) {
-      webView.isInspectable = true
-    }
+    
     webView.allowsBackForwardNavigationGestures = true
     self.webView = webView
     super.init(nibName: nil, bundle: nil)
@@ -97,8 +100,21 @@ extension LoginWebViewController: WKNavigationDelegate {
     decidePolicyFor navigationAction: WKNavigationAction,
     decisionHandler: @escaping @MainActor (WKNavigationActionPolicy) -> Void
   ) {
-    let url = navigationAction.request.url?.absoluteString ?? "unknown"
-    print("[LoginWebViewController] navigation: \(url)")
+    guard let navigatingURL = navigationAction.request.url else {
+      decisionHandler(.allow)
+      return
+    }
+    print("[LoginWebViewController] navigation: \(navigatingURL.absoluteString)")
+
+    if let state = initialState,
+       navigatingURL.queryValue(for: "state") == state,
+       navigatingURL != url {
+      print("[LoginWebViewController] state match — completing with url: \(navigatingURL.absoluteString)")
+      decisionHandler(.cancel)
+      completion?()
+      return
+    }
+
     decisionHandler(.allow)
   }
 

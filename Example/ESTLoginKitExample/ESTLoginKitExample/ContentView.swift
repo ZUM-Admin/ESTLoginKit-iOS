@@ -4,8 +4,6 @@
 //
 
 import SwiftUI
-import UIKit
-
 import ESTLoginKit
 
 struct ContentView: View {
@@ -22,7 +20,7 @@ struct ContentView: View {
       }
     }
     .sheet(isPresented: $showWebView) {
-      LoginWebViewWrapper(url: URL(string: "https://test.estoneid.com/user/login")!)
+      LoginWebView(url: URL(string: "https://test.estoneid.com/user/login?type=callback&client_id=48944&redirect_url=https://union-user-api.zum.com/api/login&service_name=zum&service_type=mobile_client&device_type=mobile&state=https://m.zum.com")!)
         .ignoresSafeArea()
     }
   }
@@ -192,18 +190,6 @@ private struct LoginButton: View {
   }
 }
 
-// MARK: - WebView Wrapper
-
-private struct LoginWebViewWrapper: UIViewControllerRepresentable {
-
-  let url: URL
-
-  func makeUIViewController(context: Context) -> LoginWebViewController {
-    LoginWebViewController(url: url)
-  }
-
-  func updateUIViewController(_ uiViewController: LoginWebViewController, context: Context) {}
-}
 
 #Preview {
   ContentView()
