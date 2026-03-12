@@ -12,7 +12,7 @@ import ESTLoginKit
 final class LoginViewModel: ObservableObject {
 
   @Published var isLoggedIn = false
-  @Published var token: String?
+  @Published var authResult: AuthResult?
   @Published var errorMessage: String?
   @Published var isLoading = false
 
@@ -23,7 +23,7 @@ final class LoginViewModel: ObservableObject {
     Task {
       do {
         let result = try await ESTLoginManager.shared.login(with: platform)
-        self.token = result
+        self.authResult = result
         self.isLoggedIn = true
       } catch AuthError.unsupportedPlatform {
         self.errorMessage = "지원하지 않는 플랫폼입니다."
@@ -35,7 +35,7 @@ final class LoginViewModel: ObservableObject {
   }
 
   func logout() {
-    token = nil
+    authResult = nil
     isLoggedIn = false
   }
 }

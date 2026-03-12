@@ -35,7 +35,7 @@ public final actor ESTLoginManager {
     }
   }
   
-  public func login(with platform: LoginPlatform) async throws -> String {
+  public func login(with platform: LoginPlatform) async throws -> AuthResult {
     let provider: AuthProvider
     
     switch platform {

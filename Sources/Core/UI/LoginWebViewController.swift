@@ -171,15 +171,15 @@ extension LoginWebViewController: WKScriptMessageHandler {
 
       Task {
         do {
-          let token = try await ESTLoginManager.shared.login(with: platform)
-          print("[LoginWebViewController] login success — provider: \(loginDTO.provider.rawValue), token: \(token.prefix(20))...")
+          let result = try await ESTLoginManager.shared.login(with: platform)
+          print("[LoginWebViewController] login success — provider: \(loginDTO.provider.rawValue), token: \(result.authorizeToken.prefix(20))...")
           sendSuccessResult(
             SNSLoginSuccessPayload(
               provider: loginDTO.provider.rawValue,
-              authorizeToken: token,
-              refreshToken: "",
-              ci: "",
-              email: ""
+              authorizeToken: result.authorizeToken,
+              refreshToken: result.refreshToken,
+              ci: result.ci,
+              email: result.email
             )
           )
         } catch {

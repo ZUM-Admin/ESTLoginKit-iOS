@@ -14,14 +14,21 @@ struct ContentView: View {
   var body: some View {
     NavigationStack {
       if viewModel.isLoggedIn {
-        LoggedInView(token: viewModel.token, onLogout: viewModel.logout)
+        LoggedInView(authResult: viewModel.authResult, onLogout: viewModel.logout)
       } else {
         LoginView(viewModel: viewModel, showWebView: $showWebView)
       }
     }
     .sheet(isPresented: $showWebView) {
-      LoginWebView(url: URL(string: "https://test.estoneid.com/user/login?type=callback&client_id=48944&redirect_url=https://union-user-api.zum.com/api/login&service_name=zum&service_type=mobile_client&device_type=mobile&state=https://m.zum.com")!)
-        .ignoresSafeArea()
+      LoginWebView(
+        url: URL(
+          string: "https://test.estoneid.com/user/login?type=callback&redirect_url=https://dev-union-user-api.zum.com/api/login&client_id=8941192&state=https://m.zum.com"
+        )!,
+        completion: {
+          print("로그인 성공")
+        }
+      )
+      .ignoresSafeArea()
     }
   }
 }
@@ -123,7 +130,7 @@ private struct LoginView: View {
 
 private struct LoggedInView: View {
 
-  let token: String?
+  let authResult: AuthResult?
   let onLogout: () -> Void
 
   var body: some View {
@@ -136,15 +143,18 @@ private struct LoggedInView: View {
         .font(.title2)
         .bold()
 
-      if let token {
-        GroupBox("토큰") {
-          ScrollView {
-            Text(token)
-              .font(.caption)
-              .foregroundStyle(.secondary)
-              .frame(maxWidth: .infinity, alignment: .leading)
+      if let result = authResult {
+        VStack(spacing: 12) {
+          TokenRow(label: "토큰", value: result.authorizeToken)
+          if !result.refreshToken.isEmpty {
+            TokenRow(label: "리프레시 토큰", value: result.refreshToken)
           }
-          .frame(maxHeight: 120)
+          if !result.ci.isEmpty {
+            TokenRow(label: "CI", value: result.ci)
+          }
+          if !result.email.isEmpty {
+            TokenRow(label: "이메일", value: result.email)
+          }
         }
         .padding(.horizontal)
       }
@@ -154,6 +164,23 @@ private struct LoggedInView: View {
         .tint(.red)
     }
     .navigationTitle("홈")
+  }
+}
+
+private struct TokenRow: View {
+  let label: String
+  let value: String
+
+  var body: some View {
+    GroupBox(label) {
+      ScrollView {
+        Text(value)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+          .frame(maxWidth: .infinity, alignment: .leading)
+      }
+      .frame(maxHeight: 80)
+    }
   }
 }
 

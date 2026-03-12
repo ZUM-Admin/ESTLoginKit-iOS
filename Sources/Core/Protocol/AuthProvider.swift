@@ -11,5 +11,5 @@ import Foundation
 public protocol AuthProvider {
     /// 실제 로그인 수행
     /// - Returns: 성공 시 토큰 문자열 (또는 커스텀 모델)
-    func login() async throws -> String
+    func login() async throws -> AuthResult
 }
