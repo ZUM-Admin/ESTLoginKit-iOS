@@ -30,7 +30,7 @@ public final class LoginWebViewController: UIViewController {
     config.preferences.javaScriptCanOpenWindowsAutomatically = true
 
     let webView = WKWebView(frame: CGRect.zero, configuration: config)
-    
+        
     webView.allowsBackForwardNavigationGestures = true
     self.webView = webView
     super.init(nibName: nil, bundle: nil)
