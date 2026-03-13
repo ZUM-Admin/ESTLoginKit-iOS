@@ -14,8 +14,8 @@ let package = Package(
         ),
     ],
     dependencies: [
-      .package(url: "https://github.com/kakao/kakao-ios-sdk", branch: "master"),
-      .package(url: "https://github.com/naver/naveridlogin-sdk-ios-swift", branch: "main"),
+      .package(url: "https://github.com/kakao/kakao-ios-sdk", from: "2.27.2"),
+      .package(url: "https://github.com/naver/naveridlogin-sdk-ios-swift", from: "5.1.0"),
       .package(url: "https://github.com/google/GoogleSignIn-iOS", exact: "9.0.0")
     ],
     targets: [

@@ -69,8 +69,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/kakao/kakao-ios-sdk",
       "state" : {
-        "branch" : "master",
-        "revision" : "5978979157a5a0521c9c56fd0156aec794caa21c"
+        "revision" : "5978979157a5a0521c9c56fd0156aec794caa21c",
+        "version" : "2.27.2"
       }
     },
     {
@@ -78,8 +78,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/naver/naveridlogin-sdk-ios-swift",
       "state" : {
-        "branch" : "main",
-        "revision" : "ad5d864497fda385f0e4bb5be8957a39391332f3"
+        "revision" : "ad5d864497fda385f0e4bb5be8957a39391332f3",
+        "version" : "5.1.0"
       }
     },
     {
