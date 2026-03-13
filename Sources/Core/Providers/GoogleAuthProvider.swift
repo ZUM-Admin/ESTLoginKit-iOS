@@ -12,7 +12,7 @@ import GoogleSignIn
 final class GoogleAuthProvider: AuthProvider {
 
   @MainActor
-  func login() async throws -> String {
+  func login() async throws -> AuthResult {
     guard
       let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
       let rootViewController = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController
@@ -30,7 +30,10 @@ final class GoogleAuthProvider: AuthProvider {
           continuation.resume(throwing: AuthError.unknown(nil))
           return
         }
-        continuation.resume(returning: idToken)
+        continuation.resume(returning: AuthResult(
+          authorizeToken: idToken,
+          email: result?.user.profile?.email ?? ""
+        ))
       }
     }
   }

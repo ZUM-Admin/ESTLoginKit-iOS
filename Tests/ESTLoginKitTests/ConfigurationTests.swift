@@ -13,8 +13,6 @@ struct ESTLoginConfigurationBuilderTests {
 
         #expect(config.kakaoConfig == nil)
         #expect(config.naverConfig == nil)
-        #expect(config.isGoogleEnabled == false)
-        #expect(config.isAppleEnabled == false)
     }
 
     @Test("카카오 설정 추가")
@@ -54,24 +52,6 @@ struct ESTLoginConfigurationBuilderTests {
         #expect(config.naverConfig?.urlScheme == "navertestapp")
     }
 
-    @Test("구글 활성화")
-    func useGoogle() {
-        let config = ESTLoginConfiguration.Builder()
-            .useGoogle()
-            .build()
-
-        #expect(config.isGoogleEnabled == true)
-    }
-
-    @Test("애플 활성화")
-    func useApple() {
-        let config = ESTLoginConfiguration.Builder()
-            .useApple()
-            .build()
-
-        #expect(config.isAppleEnabled == true)
-    }
-
     @Test("모든 설정 체이닝")
     func buildWithAllOptions() {
         let config = ESTLoginConfiguration.Builder()
@@ -82,20 +62,16 @@ struct ESTLoginConfigurationBuilderTests {
                 clientSecret: "naver_secret",
                 urlScheme: "naverapp"
             ))
-            .useGoogle()
-            .useApple()
             .build()
 
         #expect(config.kakaoConfig?.appKey == "kakao_key")
         #expect(config.naverConfig?.clientID == "naver_id")
-        #expect(config.isGoogleEnabled == true)
-        #expect(config.isAppleEnabled == true)
     }
 
     @Test("빌더 반환 타입 확인 - 체이닝 가능")
     func builderReturnsBuilder() {
         let builder = ESTLoginConfiguration.Builder()
-        let returnedBuilder = builder.useGoogle()
+        let returnedBuilder = builder.useKakao(nil)
         #expect(returnedBuilder === builder)
     }
 }

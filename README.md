@@ -43,9 +43,10 @@ import ESTLoginKit
 let config = ESTLoginConfiguration.Builder()
     .useKakao(KakaoConfiguration(appKey: "YOUR_KAKAO_NATIVE_APP_KEY"))
     .useNaver(NaverConfiguration(appName: "앱이름", clientID: "CLIENT_ID", clientSecret: "SECRET", urlScheme: "YOUR_SCHEME"))
-    .useGoogle() // GIDClientID는 Info.plist에서 자동으로 읽습니다
-    .useApple()  // Xcode Capability 설정만으로 활성화됩니다
     .build()
+
+// 구글: GIDClientID를 Info.plist에 설정하면 자동으로 동작합니다
+// 애플: Xcode Signing & Capabilities에서 Sign in with Apple을 추가하면 동작합니다
 
 await ESTLoginManager.shared.initialize(with: config)
 ```
@@ -166,8 +167,10 @@ Sign in with Apple은 외부 SDK나 Info.plist 수정 없이 Xcode Capability �
 import ESTLoginKit
 
 do {
-    let accessToken = try await ESTLoginManager.shared.login(with: .kakao)
-    print("로그인 성공: \(accessToken)")
+    let result = try await ESTLoginManager.shared.login(with: .kakao)
+    print("토큰: \(result.authorizeToken)")
+    print("리프레시 토큰: \(result.refreshToken)")
+    print("이메일: \(result.email)")
 } catch AuthError.unsupportedPlatform {
     print("지원하지 않는 플랫폼입니다.")
 } catch {

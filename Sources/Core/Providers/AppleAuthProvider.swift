@@ -10,10 +10,10 @@ import AuthenticationServices
 
 final class AppleAuthProvider: NSObject, AuthProvider {
 
-  private var continuation: CheckedContinuation<String, Error>?
+  private var continuation: CheckedContinuation<AuthResult, Error>?
 
   @MainActor
-  func login() async throws -> String {
+  func login() async throws -> AuthResult {
     return try await withCheckedThrowingContinuation { continuation in
       self.continuation = continuation
 
@@ -39,7 +39,10 @@ extension AppleAuthProvider: ASAuthorizationControllerDelegate {
       continuation?.resume(throwing: AuthError.unknown(nil))
       return
     }
-    continuation?.resume(returning: identityToken)
+    continuation?.resume(returning: AuthResult(
+      authorizeToken: identityToken,
+      email: credential.email ?? ""
+    ))
   }
 
   func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
