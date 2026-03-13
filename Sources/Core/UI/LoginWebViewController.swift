@@ -110,7 +110,7 @@ extension LoginWebViewController: WKNavigationDelegate {
        navigatingURL.queryValue(for: "state") == state,
        navigatingURL != url {
       print("[LoginWebViewController] state match — completing with url: \(navigatingURL.absoluteString)")
-      decisionHandler(.cancel)
+      decisionHandler(.allow)
       completion?()
       return
     }
