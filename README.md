@@ -224,6 +224,29 @@ navigationController?.pushViewController(vc, animated: true)
 | `AuthError.unsupportedPlatform` | 아직 구현되지 않은 플랫폼으로 로그인 시도 |
 | `AuthError.unknown(Error?)` | 알 수 없는 오류 |
 
+## 의존성 구조
+
+### 구글 SDK를 XCFramework로 번들링한 이유
+
+구글 관련 의존성(`GoogleSignIn`, `FBLPromises`, `GoogleUtilities` 등)은 SPM 패키지 대신 단일 static XCFramework(`Frameworks/GoogleSignIn.xcframework`)로 머지하여 포함됩니다.
+
+**배경**
+
+`GoogleSignIn-iOS`를 SPM으로 직접 참조하면 `FBLPromises`, `GoogleUtilities`, `AppCheckCore` 등 다수의 전이 의존성이 함께 노출됩니다. 이 경우 소비자 프로젝트(ESTLoginKit을 가져다 쓰는 앱)가 동일한 패키지를 다른 경로로 이미 참조하고 있을 때 **버전 충돌 또는 심볼 중복 링크 오류**가 발생할 수 있습니다.
+
+**해결 방법**
+
+GoogleSignIn 9.0.0과 그 의존성 전체를 하나의 static XCFramework로 빌드해 번들링합니다. 소비자 프로젝트 입장에서는 전이 의존성이 완전히 숨겨지므로 충돌 없이 패키지를 추가할 수 있습니다.
+
+```
+ESTLoginKit
+├── KakaoSDK          (SPM — 자체 의존성 없음)
+├── NaverIDLogin      (SPM — 자체 의존성 없음)
+└── GoogleSignIn      (binary XCFramework — 전이 의존성 없음)
+```
+
+> XCFramework를 직접 빌드·업데이트하려면 `Frameworks/` 디렉터리의 스크립트를 참고하세요.
+
 ## 레퍼런스
 - [Kakao developers](https://developers.kakao.com/docs/latest/ko/ios/getting-started#project)
 - [Naver Login SDK iOS](https://developers.naver.com/docs/login/ios/ios.md)

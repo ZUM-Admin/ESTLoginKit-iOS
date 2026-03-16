@@ -16,11 +16,14 @@ let package = Package(
     dependencies: [
       .package(url: "https://github.com/kakao/kakao-ios-sdk", from: "2.27.2"),
       .package(url: "https://github.com/naver/naveridlogin-sdk-ios-swift", from: "5.1.0"),
-      .package(url: "https://github.com/google/GoogleSignIn-iOS", exact: "9.0.0")
     ],
     targets: [
-        // Targets are the basic building blocks of a package, defining a module or a test suite.
-        // Targets can depend on other targets in this package and products from dependencies.
+        // GoogleSignIn 9.0.0 + 모든 의존성(FBLPromises, GoogleUtilities 등)을
+        // 하나의 static XCFramework로 머지하여 소비자 프로젝트의 전이 의존성 충돌 방지
+        .binaryTarget(
+            name: "GoogleSignIn",
+            path: "Frameworks/GoogleSignIn.xcframework"
+        ),
         .target(
             name: "ESTLoginKit",
             dependencies: [
@@ -28,12 +31,12 @@ let package = Package(
               .product(name: "KakaoSDKCommon", package: "kakao-ios-sdk"),
               .product(name: "KakaoSDKAuth", package: "kakao-ios-sdk"),
               .product(name: "KakaoSDKUser", package: "kakao-ios-sdk"),
-              
+
               // NAVER
               .product(name: "NidThirdPartyLogin", package: "naveridlogin-sdk-ios-swift"),
-              
-              // Google
-              .product(name: "GoogleSignIn", package: "GoogleSignIn-iOS")
+
+              // Google (binary target - 전이 의존성 없음)
+              "GoogleSignIn"
             ]
         ),
         .testTarget(
