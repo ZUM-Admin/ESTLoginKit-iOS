@@ -217,6 +217,26 @@ let vc = LoginWebViewController(url: loginURL) { [weak self] in
 navigationController?.pushViewController(vc, animated: true)
 ```
 
+### 웹뷰 디버깅 (Safari Web Inspector)
+
+`inspectable: true`를 전달하면 iOS 16.4 이상에서 Safari Web Inspector로 웹뷰를 디버깅할 수 있습니다. 기본값은 `false`입니다.
+
+**SwiftUI**
+
+```swift
+LoginWebView(url: loginURL, inspectable: true) {
+    showWebView = false
+}
+```
+
+**UIKit**
+
+```swift
+let vc = LoginWebViewController(url: loginURL, inspectable: true) { [weak self] in
+    self?.dismiss(animated: true)
+}
+```
+
 ## 에러 처리
 
 | 에러 | 설명 |
