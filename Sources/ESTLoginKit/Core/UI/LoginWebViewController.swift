@@ -108,7 +108,9 @@ extension LoginWebViewController: WKNavigationDelegate {
 
     if let state = initialState,
        navigatingURL.queryValue(for: "state") == state,
-       navigatingURL != url {
+       navigatingURL.scheme == url.scheme,
+       navigatingURL.host == url.host,
+       navigatingURL.path == url.path {
       print("[LoginWebViewController] state match — completing with url: \(navigatingURL.absoluteString)")
       decisionHandler(.allow)
       completion?()
