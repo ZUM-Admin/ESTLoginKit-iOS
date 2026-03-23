@@ -11,20 +11,23 @@ public struct LoginWebView: UIViewControllerRepresentable {
 
   private let url: URL
   private let externalUserAgent: String?
+  private let inspectable: Bool
   private let completion: (() -> Void)?
 
   public init(
     url: URL,
     externalUserAgent: String? = nil,
+    inspectable: Bool = false,
     completion: (() -> Void)? = nil
   ) {
     self.url = url
     self.externalUserAgent = externalUserAgent
+    self.inspectable = inspectable
     self.completion = completion
   }
 
   public func makeUIViewController(context: Context) -> LoginWebViewController {
-    LoginWebViewController(url: url, externalUserAgent: externalUserAgent, completion: completion)
+    LoginWebViewController(url: url, externalUserAgent: externalUserAgent, inspectable: inspectable, completion: completion)
   }
 
   public func updateUIViewController(_ uiViewController: LoginWebViewController, context: Context) {}
