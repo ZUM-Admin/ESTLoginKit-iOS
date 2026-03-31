@@ -9,6 +9,7 @@ import UIKit
 
 import KakaoSDKCommon
 import KakaoSDKAuth
+import KakaoSDKUser
 
 import NidThirdPartyLogin
 import GoogleSignIn
@@ -58,6 +59,19 @@ public final actor ESTLoginManager {
     return try await provider.login()
   }
   
+  public func logout() async throws {
+    try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+      UserApi.shared.logout { error in
+        if let error = error {
+          continuation.resume(throwing: error)
+        } else {
+          continuation.resume()
+        }
+      }
+    }
+    NidOAuth.shared.logout()
+  }
+
   @MainActor
   public func handle(_ url: URL) -> Bool {
     if AuthApi.isKakaoTalkLoginUrl(url) {
