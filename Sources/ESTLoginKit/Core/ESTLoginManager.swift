@@ -51,15 +51,13 @@ public final actor ESTLoginManager {
 
     case .apple:
       provider = AppleAuthProvider()
-
-    default:
-      throw AuthError.unsupportedPlatform
     }
     
     return try await provider.login()
   }
   
   public func logout() async throws {
+    NidOAuth.shared.logout()
     try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
       UserApi.shared.logout { error in
         if let error = error {
@@ -69,7 +67,6 @@ public final actor ESTLoginManager {
         }
       }
     }
-    NidOAuth.shared.logout()
   }
 
   @MainActor
