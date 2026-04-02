@@ -8,5 +8,5 @@
 import Foundation
 
 public enum LoginPlatform: String {
-    case kakao, naver, google, apple
+    case kakao, naver
 }

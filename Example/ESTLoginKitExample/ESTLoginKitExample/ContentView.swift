@@ -22,7 +22,7 @@ struct ContentView: View {
     .sheet(isPresented: $showWebView) {
       LoginWebView(
         url: URL(
-          string: "https://test.estoneid.com/user/login?type=callback&redirect_url=https://dev-union-user-api.zum.com/api/login&client_id=8941192&state=https://m.zum.com"
+          string: "https://test.estoneid.com/user/login?type=callback&redirect_url=https://union-user-api.zum.com/api/login&client_id=8941192&state=https://m.zum.com"
         )!,
         completion: {
           print("로그인 성공")
@@ -84,25 +84,6 @@ private struct LoginView: View {
           background: Color(red: 0.07, green: 0.62, blue: 0.27)
         ) {
           viewModel.login(with: .naver)
-        }
-
-        LoginButton(
-          title: "Google로 계속하기",
-          icon: "globe",
-          foreground: .black,
-          background: .white,
-          bordered: true
-        ) {
-          viewModel.login(with: .google)
-        }
-
-        LoginButton(
-          title: "Apple로 계속하기",
-          icon: "apple.logo",
-          foreground: .white,
-          background: .black
-        ) {
-          viewModel.login(with: .apple)
         }
 
         Divider()

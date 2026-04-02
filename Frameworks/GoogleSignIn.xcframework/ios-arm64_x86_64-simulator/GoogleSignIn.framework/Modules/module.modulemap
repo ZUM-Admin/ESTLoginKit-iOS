@@ -1,9 +1,0 @@
-framework module GoogleSignIn {
-  umbrella header "GoogleSignIn.h"
-  exclude header "GTMSessionFetcher/GTMSessionFetcher.h"
-  exclude header "GTMSessionFetcher/GTMSessionFetcherLogging.h"
-  exclude header "GTMSessionFetcher/GTMSessionFetcherService.h"
-  exclude header "GTMSessionFetcher/GTMSessionUploadFetcher.h"
-  export *
-  module * { export * }
-}

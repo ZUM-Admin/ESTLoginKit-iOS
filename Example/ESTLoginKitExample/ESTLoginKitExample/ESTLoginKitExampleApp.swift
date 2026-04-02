@@ -20,8 +20,6 @@ struct ESTLoginKitExampleApp: App {
 //          clientSecret: "YOUR_NAVER_CLIENT_SECRET",
 //          urlScheme: "YOUR_NAVER_URL_SCHEME"
 //        ))
-//        .useGoogle()   // Info.plist의 GIDClientID 자동 참조
-//        .useApple()    // Xcode Capability에서 Sign in with Apple 활성화 필요
         .build()
 
       await ESTLoginManager.shared.initialize(with: config)
@@ -32,7 +30,7 @@ struct ESTLoginKitExampleApp: App {
     WindowGroup {
       ContentView()
         .onOpenURL { url in
-          // 카카오 / 네이버 / 구글 OAuth 콜백 URL 처리
+          // 카카오 / 네이버 OAuth 콜백 URL 처리
           Task { @MainActor in
             _ = ESTLoginManager.shared.handle(url)
           }

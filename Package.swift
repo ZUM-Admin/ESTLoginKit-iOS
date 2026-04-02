@@ -18,12 +18,6 @@ let package = Package(
       .package(url: "https://github.com/naver/naveridlogin-sdk-ios-swift", from: "5.1.0"),
     ],
     targets: [
-        // GoogleSignIn 9.0.0 + 모든 의존성(FBLPromises, GoogleUtilities 등)을
-        // 하나의 static XCFramework로 머지하여 소비자 프로젝트의 전이 의존성 충돌 방지
-        .binaryTarget(
-            name: "GoogleSignIn",
-            path: "Frameworks/GoogleSignIn.xcframework"
-        ),
         .target(
             name: "ESTLoginKit",
             dependencies: [
@@ -34,9 +28,6 @@ let package = Package(
 
               // NAVER
               .product(name: "NidThirdPartyLogin", package: "naveridlogin-sdk-ios-swift"),
-
-              // Google (binary target - 전이 의존성 없음)
-              "GoogleSignIn"
             ]
         ),
         .testTarget(
