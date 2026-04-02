@@ -14,8 +14,6 @@ iOS 소셜 로그인을 간편하게 통합할 수 있는 Swift Package입니다
 |--------|----------|
 | 카카오 | ✅ |
 | 네이버 | ✅ |
-| 구글   | ✅ |
-| 애플   | ✅ |
 
 ## 설치
 
@@ -44,9 +42,6 @@ let config = ESTLoginConfiguration.Builder()
     .useKakao(KakaoConfiguration(appKey: "YOUR_KAKAO_NATIVE_APP_KEY"))
     .useNaver(NaverConfiguration(appName: "앱이름", clientID: "CLIENT_ID", clientSecret: "SECRET", urlScheme: "YOUR_SCHEME"))
     .build()
-
-// 구글: GIDClientID를 Info.plist에 설정하면 자동으로 동작합니다
-// 애플: Xcode Signing & Capabilities에서 Sign in with Apple을 추가하면 동작합니다
 
 await ESTLoginManager.shared.initialize(with: config)
 ```
@@ -105,9 +100,6 @@ func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>)
     <string>naversearchthirdlogin</string> <!-- 네이버 -->
 </array>
 
-<!-- 구글 -->
-<key>GIDClientID</key>
-<string>YOUR_GOOGLE_CLIENT_ID</string>
 ```
 
 ### 4. 커스텀 URL 스킴
@@ -133,34 +125,6 @@ func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>)
 </array>
 ```
 
-**구글**
-Google Cloud Console에서 OAuth 클라이언트 ID를 생성하면 `GoogleService-Info.plist`를 다운로드할 수 있습니다.
-해당 파일의 `REVERSED_CLIENT_ID` 값을 [Info] > [URL Types] > [URL Schemes]에 등록합니다.
-
-```xml
-<key>CFBundleURLTypes</key>
-<array>
-  <dict>
-    <key>CFBundleTypeRole</key>
-    <string>Editor</string>
-    <key>CFBundleURLSchemes</key>
-    <array>
-      <string>com.googleusercontent.apps.YOUR_REVERSED_CLIENT_ID</string>
-    </array>
-  </dict>
-</array>
-```
-
-`REVERSED_CLIENT_ID`는 `GoogleService-Info.plist` 내에서 확인하거나, Google Cloud Console > OAuth 2.0 클라이언트 ID 상세 페이지의 **iOS URL 스킴** 항목에서 복사할 수 있습니다.
-
-**애플**
-Sign in with Apple은 외부 SDK나 Info.plist 수정 없이 Xcode Capability 추가만으로 설정할 수 있습니다.
-
-1. Xcode에서 앱 타겟 선택
-2. **Signing & Capabilities** 탭으로 이동
-3. **+ Capability** 버튼 클릭
-4. **Sign in with Apple** 추가
-
 ## 사용법
 
 ```swift
@@ -177,6 +141,18 @@ do {
     print("로그인 실패: \(error)")
 }
 ```
+
+## 로그아웃
+
+```swift
+try await ESTLoginManager.shared.logout()
+```
+
+카카오와 네이버 로그아웃을 함께 처리합니다.
+
+> **네이버는 키체인에 토큰 정보를 저장합니다.**
+> 네이버 로그인 SDK는 인증 토큰을 기기의 키체인에 보관하므로, 로그아웃 시점에 반드시 `logout()`을 호출하여 저장된 토큰을 제거해야 합니다.
+> 호출하지 않으면 앱을 재설치하더라도 이전 토큰이 키체인에 남아 있을 수 있습니다.
 
 ## 웹뷰 로그인
 
@@ -244,31 +220,6 @@ let vc = LoginWebViewController(url: loginURL, inspectable: true) { [weak self] 
 | `AuthError.unsupportedPlatform` | 아직 구현되지 않은 플랫폼으로 로그인 시도 |
 | `AuthError.unknown(Error?)` | 알 수 없는 오류 |
 
-## 의존성 구조
-
-### 구글 SDK를 XCFramework로 번들링한 이유
-
-구글 관련 의존성(`GoogleSignIn`, `FBLPromises`, `GoogleUtilities` 등)은 SPM 패키지 대신 단일 static XCFramework(`Frameworks/GoogleSignIn.xcframework`)로 머지하여 포함됩니다.
-
-**배경**
-
-`GoogleSignIn-iOS`를 SPM으로 직접 참조하면 `FBLPromises`, `GoogleUtilities`, `AppCheckCore` 등 다수의 전이 의존성이 함께 노출됩니다. 이 경우 소비자 프로젝트(ESTLoginKit을 가져다 쓰는 앱)가 동일한 패키지를 다른 경로로 이미 참조하고 있을 때 **버전 충돌 또는 심볼 중복 링크 오류**가 발생할 수 있습니다.
-
-**해결 방법**
-
-GoogleSignIn 9.0.0과 그 의존성 전체를 하나의 static XCFramework로 빌드해 번들링합니다. 소비자 프로젝트 입장에서는 전이 의존성이 완전히 숨겨지므로 충돌 없이 패키지를 추가할 수 있습니다.
-
-```
-ESTLoginKit
-├── KakaoSDK          (SPM — 자체 의존성 없음)
-├── NaverIDLogin      (SPM — 자체 의존성 없음)
-└── GoogleSignIn      (binary XCFramework — 전이 의존성 없음)
-```
-
-> XCFramework를 직접 빌드·업데이트하려면 `Frameworks/` 디렉터리의 스크립트를 참고하세요.
-
 ## 레퍼런스
 - [Kakao developers](https://developers.kakao.com/docs/latest/ko/ios/getting-started#project)
 - [Naver Login SDK iOS](https://developers.naver.com/docs/login/ios/ios.md)
-- [Google Sign-In for iOS](https://developers.google.com/identity/sign-in/ios/start-integrating)
-- [Sign in with Apple](https://developer.apple.com/documentation/authenticationservices/implementing-user-authentication-with-sign-in-with-apple)
