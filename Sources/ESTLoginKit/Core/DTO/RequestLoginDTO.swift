@@ -14,6 +14,6 @@ struct RequestLoginDTO: Decodable {
 
 extension RequestLoginDTO {
   enum Provider: String, Decodable {
-    case kakao, naver, google, apple
+    case kakao, naver
   }
 }
