@@ -16,6 +16,7 @@ public final class LoginWebViewController: UIViewController {
 
   private let webView: WKWebView
   private var initialState: String?
+  private var originalUserAgent: String?
 
   public init(
     url: URL,
@@ -96,6 +97,27 @@ public final class LoginWebViewController: UIViewController {
     self.view.addSubview(self.webView)
     self.webView.frame = self.view.frame
   }
+  // MARK: - Google Login UA Workaround
+
+  private var isUsingAndroidUserAgent = false
+
+  private var androidUserAgent: String {
+    var ua = "Mozilla/5.0 (Linux; Android 15; SM-S928N Build/AP3A.240905.015.A2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.7151.91 Mobile Safari/537.36"
+    if let externalUserAgent {
+      ua += " \(externalUserAgent)"
+    }
+    return ua
+  }
+
+  private static let googleLoginHosts: Set<String> = [
+    "accounts.google.com",
+    "accounts.google.co.kr",
+  ]
+
+  private func isGoogleLoginURL(_ url: URL) -> Bool {
+    guard let host = url.host else { return false }
+    return Self.googleLoginHosts.contains(host)
+  }
 }
 
 
@@ -112,6 +134,24 @@ extension LoginWebViewController: WKNavigationDelegate {
       return
     }
     print("[LoginWebViewController] navigation: \(navigatingURL.absoluteString)")
+
+    // Google OAuth URL 감지 시 Android UA로 교체 후 cancel → reload
+    if isGoogleLoginURL(navigatingURL) && !isUsingAndroidUserAgent {
+      print("[LoginWebViewController] Google login detected — switching to Android UA and reloading")
+      originalUserAgent = webView.customUserAgent
+      webView.customUserAgent = androidUserAgent
+      isUsingAndroidUserAgent = true
+      decisionHandler(.cancel)
+      webView.load(URLRequest(url: navigatingURL))
+      return
+    }
+
+    // Google 로그인 완료 후 원래 UA 복원
+    if isUsingAndroidUserAgent && !isGoogleLoginURL(navigatingURL) {
+      print("[LoginWebViewController] Google login done — restoring original UA")
+      webView.customUserAgent = originalUserAgent
+      isUsingAndroidUserAgent = false
+    }
 
     if let state = initialState,
        navigatingURL.absoluteString.hasPrefix(state) {
