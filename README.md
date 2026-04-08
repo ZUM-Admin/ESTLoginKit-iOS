@@ -38,7 +38,7 @@ dependencies: [
 ```swift
 import ESTLoginKit
 
-let config = ESTLoginConfiguration.Builder()
+let config = ESTLoginConfiguration.Builder(clientId: "YOUR_CLIENT_ID")
     .useKakao(KakaoConfiguration(appKey: "YOUR_KAKAO_NATIVE_APP_KEY"))
     .useNaver(NaverConfiguration(appName: "앱이름", clientID: "CLIENT_ID", clientSecret: "SECRET", urlScheme: "YOUR_SCHEME"))
     .build()
@@ -162,6 +162,20 @@ try await ESTLoginManager.shared.logout()
 
 ### 로그인 URL 구성
 
+SDK에서 로그인 URL을 생성할 수 있습니다. `initialize()` 시 전달한 `clientId`가 자동으로 포함됩니다.
+
+```swift
+// 기본 (redirect_url = https://estoneid.com/auth/app-callback)
+let loginURL = await ESTLoginManager.shared.loginURL()
+
+// state 전달
+let loginURL = await ESTLoginManager.shared.loginURL(state: "https://m.zum.com")
+
+// redirect_url 직접 지정
+let loginURL = await ESTLoginManager.shared.loginURL(redirectURL: "https://example.com/callback", state: "custom")
+```
+
+생성되는 URL 형식:
 ```
 https://estoneid.com/user/login
   ?type=callback
@@ -232,6 +246,27 @@ LoginWebView(url: loginURL, inspectable: true) { ssoToken in
 let vc = LoginWebViewController(url: loginURL, inspectable: true) { [weak self] ssoToken in
     self?.dismiss(animated: true)
 }
+```
+
+## 마이페이지
+
+로그인과 동일한 웹뷰를 사용하여 마이페이지를 열 수 있습니다. `WKWebsiteDataStore.default()`를 통해 쿠키가 공유되므로, 로그인 세션이 유지된 상태에서 마이페이지에 접근할 수 있습니다.
+
+**SwiftUI**
+
+```swift
+.sheet(isPresented: $showMypage) {
+    LoginWebView(url: await ESTLoginManager.shared.mypageURL)
+        .ignoresSafeArea()
+}
+```
+
+**UIKit**
+
+```swift
+let mypageURL = await ESTLoginManager.shared.mypageURL
+let vc = LoginWebViewController(url: mypageURL)
+present(vc, animated: true)
 ```
 
 ## 에러 처리

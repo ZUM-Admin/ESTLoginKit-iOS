@@ -62,6 +62,32 @@ public final actor ESTLoginManager {
     }
   }
 
+  // MARK: - URLs
+
+  private static let baseURL = "https://estoneid.com"
+
+  public var mypageURL: URL {
+    URL(string: "\(Self.baseURL)/mypage/setting")!
+  }
+
+  public func loginURL(redirectURL: String? = nil, state: String? = nil) -> URL {
+    guard let clientId = configuration?.clientId else {
+      fatalError("[ESTLoginKit] loginURL requires initialize() to be called first")
+    }
+    let actualRedirectURL = redirectURL ?? "\(Self.baseURL)/auth/app-callback"
+    var components = URLComponents(string: "\(Self.baseURL)/user/login")!
+    var items = [
+      URLQueryItem(name: "type", value: "callback"),
+      URLQueryItem(name: "client_id", value: clientId),
+      URLQueryItem(name: "redirect_url", value: actualRedirectURL),
+    ]
+    if let state {
+      items.append(URLQueryItem(name: "state", value: state))
+    }
+    components.queryItems = items
+    return components.url!
+  }
+
   @MainActor
   public func handle(_ url: URL) -> Bool {
     if AuthApi.isKakaoTalkLoginUrl(url) {

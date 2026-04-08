@@ -9,6 +9,10 @@ import Foundation
 
 public struct ESTLoginConfiguration {
 
+  // MARK: - 클라이언트
+
+  let clientId: String
+
   // MARK: - 카카오
 
   let kakaoConfig: KakaoConfiguration?
@@ -19,19 +23,25 @@ public struct ESTLoginConfiguration {
   let naverConfig: NaverConfiguration?
 
   private init(
+    clientId: String,
     kakaoConfig: KakaoConfiguration? = nil,
     naverConfig: NaverConfiguration? = nil
   ) {
+    self.clientId = clientId
     self.kakaoConfig = kakaoConfig
     self.naverConfig = naverConfig
   }
 
   // 빌더 클래스
   public class Builder {
+    private var clientId: String
+
     private var kakaoConfig: KakaoConfiguration?
     private var naverConfig: NaverConfiguration?
 
-    public init() {}
+    public init(clientId: String) {
+      self.clientId = clientId
+    }
 
     public func useKakao(_ config: KakaoConfiguration?) -> Builder {
       self.kakaoConfig = config
@@ -45,6 +55,7 @@ public struct ESTLoginConfiguration {
 
     public func build() -> ESTLoginConfiguration {
       return ESTLoginConfiguration(
+        clientId: clientId,
         kakaoConfig: kakaoConfig,
         naverConfig: naverConfig
       )

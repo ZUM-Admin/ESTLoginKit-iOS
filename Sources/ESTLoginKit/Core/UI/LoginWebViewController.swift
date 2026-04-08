@@ -33,6 +33,7 @@ public final class LoginWebViewController: UIViewController {
     self.initialState = url.queryValue(for: "state")
 
     let config = WKWebViewConfiguration()
+    config.websiteDataStore = WKWebsiteDataStore.default()
     config.preferences.javaScriptCanOpenWindowsAutomatically = true
 
     let webView = WKWebView(frame: CGRect.zero, configuration: config)

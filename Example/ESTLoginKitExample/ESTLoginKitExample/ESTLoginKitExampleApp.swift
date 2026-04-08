@@ -12,7 +12,7 @@ struct ESTLoginKitExampleApp: App {
 
   init() {
     Task {
-      let config = ESTLoginConfiguration.Builder()
+      let config = ESTLoginConfiguration.Builder(clientId: "8941192")
         .useKakao(KakaoConfiguration(appKey: "d3a19dde0b860aaaf4aec55e2a12db02"))
 //        .useNaver(NaverConfiguration(
 //          appName: "앱이름",
