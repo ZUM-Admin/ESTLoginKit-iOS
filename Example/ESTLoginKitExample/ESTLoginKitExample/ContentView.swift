@@ -24,8 +24,8 @@ struct ContentView: View {
         url: URL(
           string: "https://test.estoneid.com/user/login?type=callback&redirect_url=https://union-user-api.zum.com/api/login&client_id=8941192&state=https://m.zum.com"
         )!,
-        completion: {
-          print("로그인 성공")
+        completion: { ssoToken in
+          print("로그인 성공 — ssoToken: \(ssoToken ?? "없음")")
         }
       )
       .ignoresSafeArea()

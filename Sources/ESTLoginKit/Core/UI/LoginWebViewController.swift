@@ -12,17 +12,19 @@ public final class LoginWebViewController: UIViewController {
   private let url: URL
   private let externalUserAgent: String?
   private let inspectable: Bool
-  private let completion: (() -> Void)?
+  private let completion: ((String?) -> Void)?
 
   private let webView: WKWebView
   private var initialState: String?
   private var originalUserAgent: String?
 
+  private static let appCallbackPath = "https://estoneid.com/auth/app-callback"
+
   public init(
     url: URL,
     externalUserAgent: String? = nil,
     inspectable: Bool = false,
-    completion: (() -> Void)? = nil
+    completion: ((String?) -> Void)? = nil
   ) {
     self.url = url
     self.externalUserAgent = externalUserAgent
@@ -153,11 +155,22 @@ extension LoginWebViewController: WKNavigationDelegate {
       isUsingAndroidUserAgent = false
     }
 
+    // app-callback URL → ssoToken 추출 후 콜백 전달
+    if navigatingURL.absoluteString.hasPrefix(Self.appCallbackPath) {
+      if let ssoToken = navigatingURL.queryValue(for: "code") {
+        print("[LoginWebViewController] app-callback with ssoToken — completing")
+        decisionHandler(.cancel)
+        completion?(ssoToken)
+        return
+      }
+    }
+
+    // state URL 매칭 → ssoToken 없이 콜백 전달
     if let state = initialState,
        navigatingURL.absoluteString.hasPrefix(state) {
       print("[LoginWebViewController] state url match — completing with url: \(navigatingURL.absoluteString)")
       decisionHandler(.allow)
-      completion?()
+      completion?(nil)
       return
     }
 

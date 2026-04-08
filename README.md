@@ -158,7 +158,22 @@ try await ESTLoginManager.shared.logout()
 
 `LoginWebView` (SwiftUI) 또는 `LoginWebViewController` (UIKit)를 사용해 웹 기반 로그인을 구현할 수 있습니다.
 
-초기 URL에 `state` 쿼리 파라미터가 포함된 경우, 웹뷰는 이를 저장하고 이후 동일한 `state` 값을 가진 URL로 이동하는 시점에 `completion`을 호출합니다.
+웹뷰 로그인은 SSO 콜백 방식으로 동작하며, `completion` 클로저는 `(String?) -> Void` 타입입니다.
+
+### 로그인 URL 구성
+
+```
+https://estoneid.com/user/login
+  ?type=callback
+  &client_id={발급받은 클라이언트 ID}
+  &redirect_url=https://estoneid.com/auth/app-callback
+  &state={앱이 전달할 임의 값 (선택)}
+```
+
+### 콜백 흐름
+
+1. **SSO 콜백**: 로그인 완료 후 `https://estoneid.com/auth/app-callback?code={ssoToken}&state={state}` 로 리다이렉트되면, `ssoToken`을 추출하여 `completion(ssoToken)`을 호출합니다.
+2. **state URL 매칭 (ZUM 전용)**: 초기 URL의 `state` 쿼리 파라미터와 동일한 URL로 이동하면 `completion(nil)`을 호출합니다. 이 방식은 ZUM 서비스 전용이며, 일반적인 경우 SSO 콜백 방식을 사용하세요.
 
 > **dismiss는 호출부에서 처리해야 합니다.**
 > `LoginWebView` / `LoginWebViewController`는 화면 닫기를 직접 처리하지 않습니다.
@@ -168,7 +183,10 @@ try await ESTLoginManager.shared.logout()
 
 ```swift
 .sheet(isPresented: $showWebView) {
-    LoginWebView(url: loginURL) {
+    LoginWebView(url: loginURL) { ssoToken in
+        if let ssoToken {
+            print("SSO 토큰: \(ssoToken)")
+        }
         showWebView = false
     }
     .ignoresSafeArea()
@@ -178,7 +196,10 @@ try await ESTLoginManager.shared.logout()
 **UIKit (modal)**
 
 ```swift
-let vc = LoginWebViewController(url: loginURL) { [weak self] in
+let vc = LoginWebViewController(url: loginURL) { [weak self] ssoToken in
+    if let ssoToken {
+        print("SSO 토큰: \(ssoToken)")
+    }
     self?.dismiss(animated: true)
 }
 present(vc, animated: true)
@@ -187,7 +208,7 @@ present(vc, animated: true)
 **UIKit (push)**
 
 ```swift
-let vc = LoginWebViewController(url: loginURL) { [weak self] in
+let vc = LoginWebViewController(url: loginURL) { [weak self] ssoToken in
     self?.navigationController?.popViewController(animated: true)
 }
 navigationController?.pushViewController(vc, animated: true)
@@ -200,7 +221,7 @@ navigationController?.pushViewController(vc, animated: true)
 **SwiftUI**
 
 ```swift
-LoginWebView(url: loginURL, inspectable: true) {
+LoginWebView(url: loginURL, inspectable: true) { ssoToken in
     showWebView = false
 }
 ```
@@ -208,7 +229,7 @@ LoginWebView(url: loginURL, inspectable: true) {
 **UIKit**
 
 ```swift
-let vc = LoginWebViewController(url: loginURL, inspectable: true) { [weak self] in
+let vc = LoginWebViewController(url: loginURL, inspectable: true) { [weak self] ssoToken in
     self?.dismiss(animated: true)
 }
 ```

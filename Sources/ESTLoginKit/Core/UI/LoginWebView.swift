@@ -12,13 +12,13 @@ public struct LoginWebView: UIViewControllerRepresentable {
   private let url: URL
   private let externalUserAgent: String?
   private let inspectable: Bool
-  private let completion: (() -> Void)?
+  private let completion: ((String?) -> Void)?
 
   public init(
     url: URL,
     externalUserAgent: String? = nil,
     inspectable: Bool = false,
-    completion: (() -> Void)? = nil
+    completion: ((String?) -> Void)? = nil
   ) {
     self.url = url
     self.externalUserAgent = externalUserAgent
