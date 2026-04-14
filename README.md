@@ -29,6 +29,38 @@ dependencies: [
 
 또는 Xcode에서 **File > Add Package Dependencies** 를 통해 URL을 입력해 추가할 수 있습니다.
 
+## 외부에서 주입해야 할 값
+
+SDK 통합 시 앱에서 직접 주입해야 하는 값 목록입니다. 값이 유출되면 안 되는 항목은 `.xcconfig`, 키체인, 빌드 환경 변수 등으로 분리 관리하는 것을 권장합니다.
+
+### 필수
+
+| 항목 | 주입 위치 | 설명 |
+|------|----------|------|
+| `clientId` | `ESTLoginConfiguration.Builder(clientId:)` | ESTLoginKit에서 발급받은 클라이언트 ID |
+
+### 플랫폼 (카카오·네이버 모두 필수)
+
+| 플랫폼 | 항목 | 주입 위치 |
+|-------|------|----------|
+| 카카오 | `appKey` | `KakaoConfiguration(appKey:)` → `.useKakao(_:)` |
+| 카카오 | URL Scheme `kakao{APP_KEY}` | `Info.plist` > `CFBundleURLTypes` |
+| 네이버 | `appName` | `NaverConfiguration(appName:...)` → `.useNaver(_:)` |
+| 네이버 | `clientID` | `NaverConfiguration(clientID:...)` |
+| 네이버 | `clientSecret` | `NaverConfiguration(clientSecret:...)` |
+| 네이버 | `urlScheme` | `NaverConfiguration(urlScheme:...)` + `Info.plist` > `CFBundleURLTypes` |
+
+### 선택 (미지정 시 기본값 사용)
+
+| 항목 | 주입 위치 | 기본값 / 설명 |
+|------|----------|-------------|
+| `baseURL` | `Builder.useBaseURL(_:)` | `https://estoneid.com`. 개발/스테이징 대응용 |
+| `redirectURL` | `ESTLoginManager.shared.loginURL(redirectURL:)` | `{baseURL}/auth/app-callback` |
+| `state` | `ESTLoginManager.shared.loginURL(state:)` | 없음. ZUM 전용 state URL 매칭 흐름에서만 사용 |
+| `callbackURL` | `LoginWebView(callbackURL:)` / `LoginWebViewController(callbackURL:)` | nil. 지정 시 해당 URL로 리다이렉트되면 `code` 쿼리를 `ssoToken`으로 추출해 completion 호출 |
+| `externalUserAgent` | `LoginWebView(externalUserAgent:)` | nil. 커스텀 User-Agent가 필요한 경우 지정 |
+| `inspectable` | `LoginWebView(inspectable:)` | `false`. Safari Web Inspector 활성화 (iOS 16.4+) |
+
 ## 설정
 
 ### 1. 초기화
