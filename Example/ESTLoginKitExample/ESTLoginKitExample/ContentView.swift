@@ -9,28 +9,50 @@ import ESTLoginKit
 struct ContentView: View {
 
   @StateObject private var viewModel = LoginViewModel()
-  @State private var showWebView = false
+  @State private var webLoginURL: URL?
+
+  // 실제 서비스 연동 시 각자의 redirect/callback URL로 교체하세요.
+  private let callbackURL = "YOUR_CALLBACK_URL" // 예: https://estoneid.com/auth/app-callback
 
   var body: some View {
     NavigationStack {
       if viewModel.isLoggedIn {
         LoggedInView(authResult: viewModel.authResult, onLogout: viewModel.logout)
       } else {
-        LoginView(viewModel: viewModel, showWebView: $showWebView)
+        LoginView(viewModel: viewModel, onWebLogin: startWebLogin)
       }
     }
-    .sheet(isPresented: $showWebView) {
+    .sheet(item: Binding(
+      get: { webLoginURL.map(IdentifiableURL.init) },
+      set: { webLoginURL = $0?.url }
+    )) { identifiable in
       LoginWebView(
-        url: URL(
-          string: "https://test.estoneid.com/user/login?type=callback&redirect_url=https://union-user-api.zum.com/api/login&client_id=8941192&state=https://m.zum.com"
-        )!,
+        url: identifiable.url,
+        callbackURL: callbackURL,
         completion: { ssoToken in
           print("로그인 성공 — ssoToken: \(ssoToken ?? "없음")")
+          webLoginURL = nil
         }
       )
       .ignoresSafeArea()
     }
   }
+
+  private func startWebLogin() {
+    Task {
+      // SDK가 제공하는 loginURL 헬퍼를 사용하면 configuration의 clientId / baseURL이 자동 반영됩니다.
+      let url = await ESTLoginManager.shared.loginURL(
+        redirectURL: callbackURL,
+        state: "YOUR_STATE"
+      )
+      await MainActor.run { webLoginURL = url }
+    }
+  }
+}
+
+private struct IdentifiableURL: Identifiable {
+  let url: URL
+  var id: String { url.absoluteString }
 }
 
 // MARK: - Login View
@@ -38,7 +60,7 @@ struct ContentView: View {
 private struct LoginView: View {
 
   @ObservedObject var viewModel: LoginViewModel
-  @Binding var showWebView: Bool
+  let onWebLogin: () -> Void
 
   var body: some View {
     VStack(spacing: 24) {
@@ -95,7 +117,7 @@ private struct LoginView: View {
           foreground: .white,
           background: Color(red: 0.2, green: 0.4, blue: 0.9)
         ) {
-          showWebView = true
+          onWebLogin()
         }
       }
       .padding(.horizontal, 24)

@@ -12,14 +12,16 @@ struct ESTLoginKitExampleApp: App {
 
   init() {
     Task {
-      let config = ESTLoginConfiguration.Builder(clientId: "8941192")
-        .useKakao(KakaoConfiguration(appKey: "d3a19dde0b860aaaf4aec55e2a12db02"))
-//        .useNaver(NaverConfiguration(
-//          appName: "앱이름",
-//          clientID: "YOUR_NAVER_CLIENT_ID",
-//          clientSecret: "YOUR_NAVER_CLIENT_SECRET",
-//          urlScheme: "YOUR_NAVER_URL_SCHEME"
-//        ))
+      let config = ESTLoginConfiguration.Builder(clientId: "YOUR_CLIENT_ID")
+        // 개발 환경용 베이스 URL 오버라이드 (미지정 시 기본값 https://estoneid.com 사용)
+        // .useBaseURL("https://test.estoneid.com")
+        .useKakao(KakaoConfiguration(appKey: "KAKAO_SDK_KEY"))
+        .useNaver(NaverConfiguration(
+          appName: "YOUR_APP_NAME",
+          clientID: "NAVER_CLIENT_ID",
+          clientSecret: "NAVER_CLIENT_SECRET",
+          urlScheme: "NAVER_URL_SCHEME"
+        ))
         .build()
 
       await ESTLoginManager.shared.initialize(with: config)

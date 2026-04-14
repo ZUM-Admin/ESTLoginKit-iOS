@@ -15,42 +15,44 @@ ESTLoginKit을 실제 앱에 통합하는 방법을 보여주는 예제 프로�
 
 ## 필수 설정
 
+예제 코드의 placeholder는 실제 값으로 교체해야 동작합니다.
+
+| Placeholder | 설명 |
+|------|------|
+| `YOUR_CLIENT_ID` | ESTLoginKit에서 발급받은 클라이언트 ID |
+| `KAKAO_SDK_KEY` | 카카오 네이티브 앱 키 |
+| `NAVER_CLIENT_ID` / `NAVER_CLIENT_SECRET` | 네이버 앱 클라이언트 ID / Secret |
+| `NAVER_URL_SCHEME` | 네이버 로그인 SDK용 URL Scheme |
+| `YOUR_APP_NAME` | 네이버 로그인 화면에 표시되는 앱 이름 |
+| `YOUR_CALLBACK_URL` | 로그인 완료 시 리다이렉트되는 콜백 URL |
+
 ### Info.plist
 
 ```xml
-<!-- 카카오 URL Scheme -->
+<!-- 카카오 / 네이버 URL Scheme 질의 -->
 <key>LSApplicationQueriesSchemes</key>
 <array>
     <string>kakaokompassauth</string>
     <string>storykompassauth</string>
     <string>kakaolink</string>
+    <string>naversearchapp</string>
+    <string>naversearchthirdlogin</string>
 </array>
 
-<!-- 카카오 앱 키 -->
-<key>KAKAO_APP_KEY</key>
-<string>YOUR_KAKAO_APP_KEY</string>
-
-<!-- 구글 클라이언트 ID -->
-<key>GIDClientID</key>
-<string>YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com</string>
-
-<!-- 구글 역방향 클라이언트 ID (URL Scheme) -->
+<!-- URL Scheme 등록 -->
 <key>CFBundleURLTypes</key>
 <array>
     <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-            <string>com.googleusercontent.apps.YOUR_GOOGLE_CLIENT_ID</string>
-            <string>kakao${KAKAO_APP_KEY}</string>
-            <string>YOUR_NAVER_URL_SCHEME</string>
+            <string>kakaoKAKAO_SDK_KEY</string>
+            <string>NAVER_URL_SCHEME</string>
         </array>
     </dict>
 </array>
 ```
 
-### Signing & Capabilities
-
-- **Sign in with Apple** Capability 추가 (Apple 로그인 사용 시)
+> 카카오 네이티브 앱 키가 `abc123`이라면 URL Scheme은 `kakaoabc123` 형식으로 등록합니다.
 
 ## 파일 구성
 
@@ -58,4 +60,4 @@ ESTLoginKit을 실제 앱에 통합하는 방법을 보여주는 예제 프로�
 |------|------|
 | `ESTLoginKitExampleApp.swift` | 앱 진입점, ESTLoginManager 초기화 및 URL 핸들링 |
 | `LoginViewModel.swift` | 로그인 로직 및 상태 관리 |
-| `ContentView.swift` | 로그인 UI (카카오 / 네이버 / 구글 / Apple 버튼) |
+| `ContentView.swift` | 로그인 UI (카카오 / 네이버 / 웹뷰 로그인 버튼) |

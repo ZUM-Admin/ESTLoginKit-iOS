@@ -46,6 +46,19 @@ let config = ESTLoginConfiguration.Builder(clientId: "YOUR_CLIENT_ID")
 await ESTLoginManager.shared.initialize(with: config)
 ```
 
+#### 베이스 URL 커스터마이즈 (선택)
+
+개발/스테이징 환경 대응이 필요하면 `useBaseURL(_:)`로 베이스 URL을 지정할 수 있습니다. 미지정 시 기본값은 `https://estoneid.com` 입니다.
+
+```swift
+let config = ESTLoginConfiguration.Builder(clientId: "YOUR_CLIENT_ID")
+    .useBaseURL("https://test.estoneid.com") // 기본값: https://estoneid.com
+    .useKakao(KakaoConfiguration(appKey: "YOUR_KAKAO_NATIVE_APP_KEY"))
+    .build()
+```
+
+`ESTLoginManager.shared.loginURL()`과 `mypageURL`이 이 베이스 URL을 기준으로 생성됩니다.
+
 ### 2. URL 핸들링
 
 로그인 콜백 처리를 위해 URL 핸들러를 등록합니다.
@@ -165,15 +178,23 @@ try await ESTLoginManager.shared.logout()
 SDK에서 로그인 URL을 생성할 수 있습니다. `initialize()` 시 전달한 `clientId`가 자동으로 포함됩니다.
 
 ```swift
-// 기본 (redirect_url = https://estoneid.com/auth/app-callback)
+// 기본 (redirect_url = {baseURL}/auth/app-callback)
 let loginURL = await ESTLoginManager.shared.loginURL()
 
-// state 전달
+// redirect_url 직접 지정
+let loginURL = await ESTLoginManager.shared.loginURL(redirectURL: "https://example.com/callback")
+
+// state 전달 (선택)
 let loginURL = await ESTLoginManager.shared.loginURL(state: "https://m.zum.com")
 
-// redirect_url 직접 지정
-let loginURL = await ESTLoginManager.shared.loginURL(redirectURL: "https://example.com/callback", state: "custom")
+// redirect_url + state 동시 지정
+let loginURL = await ESTLoginManager.shared.loginURL(
+    redirectURL: "https://example.com/callback",
+    state: "https://m.zum.com"
+)
 ```
+
+> `state`는 **선택 파라미터**입니다. 생략하면 URL에 `state` 쿼리 자체가 포함되지 않습니다. `redirectURL`과 독립적으로 동작하므로 둘 중 하나만, 둘 다, 또는 모두 생략해도 됩니다.
 
 생성되는 URL 형식:
 ```
@@ -186,8 +207,20 @@ https://estoneid.com/user/login
 
 ### 콜백 흐름
 
-1. **SSO 콜백**: 로그인 완료 후 `https://estoneid.com/auth/app-callback?code={ssoToken}&state={state}` 로 리다이렉트되면, `ssoToken`을 추출하여 `completion(ssoToken)`을 호출합니다.
+1. **SSO 콜백**: `callbackURL` 파라미터로 지정한 URL로 리다이렉트되면 쿼리의 `code` 값을 `ssoToken`으로 추출하여 `completion(ssoToken)`을 호출합니다. `callbackURL`이 `nil`이면 이 감지는 비활성화됩니다.
 2. **state URL 매칭 (ZUM 전용)**: 초기 URL의 `state` 쿼리 파라미터와 동일한 URL로 이동하면 `completion(nil)`을 호출합니다. 이 방식은 ZUM 서비스 전용이며, 일반적인 경우 SSO 콜백 방식을 사용하세요.
+
+`LoginWebView` / `LoginWebViewController`는 다음 시그니처를 가집니다.
+
+```swift
+LoginWebView(
+    url: URL,
+    callbackURL: String? = nil,   // 예: "https://estoneid.com/auth/app-callback"
+    externalUserAgent: String? = nil,
+    inspectable: Bool = false,
+    completion: ((String?) -> Void)? = nil
+)
+```
 
 > **dismiss는 호출부에서 처리해야 합니다.**
 > `LoginWebView` / `LoginWebViewController`는 화면 닫기를 직접 처리하지 않습니다.
@@ -197,7 +230,10 @@ https://estoneid.com/user/login
 
 ```swift
 .sheet(isPresented: $showWebView) {
-    LoginWebView(url: loginURL) { ssoToken in
+    LoginWebView(
+        url: loginURL,
+        callbackURL: "https://estoneid.com/auth/app-callback"
+    ) { ssoToken in
         if let ssoToken {
             print("SSO 토큰: \(ssoToken)")
         }
@@ -271,10 +307,36 @@ present(vc, animated: true)
 
 ## 에러 처리
 
-| 에러 | 설명 |
-|------|------|
-| `AuthError.unsupportedPlatform` | 아직 구현되지 않은 플랫폼으로 로그인 시도 |
-| `AuthError.unknown(Error?)` | 알 수 없는 오류 |
+`ESTLoginManager.shared.login(with:)`는 성공 시 `AuthResult`를 반환하고, 실패 시 **각 제공자 SDK의 원본 에러를 그대로 전달**합니다. 사용자 취소·네트워크 오류·인증 실패 등은 모두 `KakaoSDK` / `NidThirdPartyLogin`에서 정의한 에러 타입으로 올라옵니다.
+
+ESTLoginKit 자체가 정의한 타입은 다음 하나뿐이며, 현재 구현 흐름에선 실제로 던져지지 않습니다. (향후 미지원 플랫폼 호출 대비용)
+
+```swift
+public enum AuthError: Error {
+  case unsupportedPlatform
+  case unknown(Error?)
+}
+```
+
+기본 사용 예:
+
+```swift
+do {
+    let result = try await ESTLoginManager.shared.login(with: .kakao)
+    // 성공 처리
+} catch {
+    // 카카오: KakaoSDKCommon.SdkError 등
+    // 네이버: NidThirdPartyLogin에서 전달하는 Error
+    print("로그인 실패: \(error)")
+}
+```
+
+각 SDK의 에러 상세 분류가 필요하다면 카카오/네이버 공식 문서를 참고하세요.
+
+> **웹뷰 로그인의 completion**
+> `LoginWebView` / `LoginWebViewController`의 `completion` 콜백은 `(String?) -> Void` 이며 에러를 던지지 않습니다.
+> - `ssoToken`이 **non-nil**: `callbackURL`에서 `code` 쿼리 추출에 성공.
+> - `ssoToken`이 **nil**: 초기 URL의 `state` 파라미터와 매칭되는 URL로 이동한 경우(ZUM 전용 흐름). 일반적인 경우 `callbackURL`을 전달해 non-nil 케이스로 성공을 판정하세요.
 
 ## 레퍼런스
 - [Kakao developers](https://developers.kakao.com/docs/latest/ko/ios/getting-started#project)
