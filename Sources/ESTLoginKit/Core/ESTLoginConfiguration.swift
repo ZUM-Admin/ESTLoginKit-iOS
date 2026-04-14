@@ -9,9 +9,15 @@ import Foundation
 
 public struct ESTLoginConfiguration {
 
+  public static let defaultBaseURL = "https://estoneid.com"
+
   // MARK: - 클라이언트
 
   let clientId: String
+
+  // MARK: - 베이스 URL
+
+  let baseURL: String
 
   // MARK: - 카카오
 
@@ -24,10 +30,12 @@ public struct ESTLoginConfiguration {
 
   private init(
     clientId: String,
+    baseURL: String,
     kakaoConfig: KakaoConfiguration? = nil,
     naverConfig: NaverConfiguration? = nil
   ) {
     self.clientId = clientId
+    self.baseURL = baseURL
     self.kakaoConfig = kakaoConfig
     self.naverConfig = naverConfig
   }
@@ -35,12 +43,18 @@ public struct ESTLoginConfiguration {
   // 빌더 클래스
   public class Builder {
     private var clientId: String
+    private var baseURL: String = ESTLoginConfiguration.defaultBaseURL
 
     private var kakaoConfig: KakaoConfiguration?
     private var naverConfig: NaverConfiguration?
 
     public init(clientId: String) {
       self.clientId = clientId
+    }
+
+    public func useBaseURL(_ baseURL: String) -> Builder {
+      self.baseURL = baseURL
+      return self
     }
 
     public func useKakao(_ config: KakaoConfiguration?) -> Builder {
@@ -56,6 +70,7 @@ public struct ESTLoginConfiguration {
     public func build() -> ESTLoginConfiguration {
       return ESTLoginConfiguration(
         clientId: clientId,
+        baseURL: baseURL,
         kakaoConfig: kakaoConfig,
         naverConfig: naverConfig
       )

@@ -64,18 +64,21 @@ public final actor ESTLoginManager {
 
   // MARK: - URLs
 
-  private static let baseURL = "https://estoneid.com"
+  private var baseURL: String {
+    configuration?.baseURL ?? ESTLoginConfiguration.defaultBaseURL
+  }
 
   public var mypageURL: URL {
-    URL(string: "\(Self.baseURL)/mypage/setting")!
+    URL(string: "\(baseURL)/mypage/setting")!
   }
 
   public func loginURL(redirectURL: String? = nil, state: String? = nil) -> URL {
     guard let clientId = configuration?.clientId else {
       fatalError("[ESTLoginKit] loginURL requires initialize() to be called first")
     }
-    let actualRedirectURL = redirectURL ?? "\(Self.baseURL)/auth/app-callback"
-    var components = URLComponents(string: "\(Self.baseURL)/user/login")!
+    let base = baseURL
+    let actualRedirectURL = redirectURL ?? "\(base)/auth/app-callback"
+    var components = URLComponents(string: "\(base)/user/login")!
     var items = [
       URLQueryItem(name: "type", value: "callback"),
       URLQueryItem(name: "client_id", value: clientId),

@@ -10,6 +10,7 @@ import WebKit
 
 public final class LoginWebViewController: UIViewController {
   private let url: URL
+  private let callbackURL: String?
   private let externalUserAgent: String?
   private let inspectable: Bool
   private let completion: ((String?) -> Void)?
@@ -18,15 +19,15 @@ public final class LoginWebViewController: UIViewController {
   private var initialState: String?
   private var originalUserAgent: String?
 
-  private static let appCallbackPath = "https://estoneid.com/auth/app-callback"
-
   public init(
     url: URL,
+    callbackURL: String? = nil,
     externalUserAgent: String? = nil,
     inspectable: Bool = false,
     completion: ((String?) -> Void)? = nil
   ) {
     self.url = url
+    self.callbackURL = callbackURL
     self.externalUserAgent = externalUserAgent
     self.inspectable = inspectable
     self.completion = completion
@@ -156,10 +157,11 @@ extension LoginWebViewController: WKNavigationDelegate {
       isUsingAndroidUserAgent = false
     }
 
-    // app-callback URL → ssoToken 추출 후 콜백 전달
-    if navigatingURL.absoluteString.hasPrefix(Self.appCallbackPath) {
+    // callback URL → ssoToken 추출 후 콜백 전달
+    if let callbackURL,
+       navigatingURL.absoluteString.hasPrefix(callbackURL) {
       if let ssoToken = navigatingURL.queryValue(for: "code") {
-        print("[LoginWebViewController] app-callback with ssoToken — completing")
+        print("[LoginWebViewController] callback with ssoToken — completing")
         decisionHandler(.cancel)
         completion?(ssoToken)
         return
