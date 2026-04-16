@@ -22,7 +22,7 @@ public final actor ESTLoginManager {
     self.configuration = config
     
     if let kakaoConfig = config.kakaoConfig {
-      KakaoSDK.initSDK(appKey: kakaoConfig.appKey)
+      KakaoSDK.initSDK(appKey: kakaoConfig.appKey, customScheme: kakaoConfig.customScheme)
     }
     
     if let naverConfig = config.naverConfig {
