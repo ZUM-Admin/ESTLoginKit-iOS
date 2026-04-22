@@ -44,6 +44,7 @@ SDK 통합 시 앱에서 직접 주입해야 하는 값 목록입니다. 값이 
 | 플랫폼 | 항목 | 주입 위치 |
 |-------|------|----------|
 | 카카오 | `appKey` | `KakaoConfiguration(appKey:)` → `.useKakao(_:)` |
+| 카카오 | `customScheme` (선택) | `KakaoConfiguration(appKey:customScheme:)` → `.useKakao(_:)` |
 | 카카오 | URL Scheme `kakao{APP_KEY}` | `Info.plist` > `CFBundleURLTypes` |
 | 네이버 | `appName` | `NaverConfiguration(appName:...)` → `.useNaver(_:)` |
 | 네이버 | `clientID` | `NaverConfiguration(clientID:...)` |
@@ -90,6 +91,25 @@ let config = ESTLoginConfiguration.Builder(clientId: "YOUR_CLIENT_ID")
 ```
 
 `ESTLoginManager.shared.loginURL()`과 `mypageURL`이 이 베이스 URL을 기준으로 생성됩니다.
+
+#### 카카오 커스텀 스킴 (개발/운영 앱 분리 시 필수)
+
+개발 앱과 운영 앱이 동일한 카카오 앱 키를 사용하는 경우, URL Scheme(`kakao{APP_KEY}`)이 동일하므로 카카오 인증 후 콜백이 운영 앱으로 열릴 수 있습니다. 이를 방지하려면 `customScheme`을 지정하여 개발 앱 전용 스킴으로 분리합니다.
+
+```swift
+// 개발 앱 — 커스텀 스킴으로 콜백이 개발 앱으로 돌아오도록 지정
+let config = ESTLoginConfiguration.Builder(clientId: "YOUR_CLIENT_ID")
+    .useBaseURL("https://test.estoneid.com")
+    .useKakao(KakaoConfiguration(
+        appKey: "YOUR_KAKAO_NATIVE_APP_KEY",
+        customScheme: "kakao{APP_KEY}dev"  // 개발 전용 스킴
+    ))
+    .build()
+```
+
+`customScheme`을 지정하면 `KakaoSDK.initSDK(appKey:customScheme:)`에 전달됩니다. 카카오 개발자 콘솔에서도 해당 커스텀 스킴을 등록하고, `Info.plist`의 `CFBundleURLTypes`에도 동일한 스킴을 추가해야 합니다.
+
+> **운영 앱**은 `customScheme`을 지정하지 않으면 기본 스킴(`kakao{APP_KEY}`)이 사용됩니다.
 
 ### 2. URL 핸들링
 
