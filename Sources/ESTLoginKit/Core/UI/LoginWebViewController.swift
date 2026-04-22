@@ -17,7 +17,6 @@ public final class LoginWebViewController: UIViewController {
 
   private let webView: WKWebView
   private var initialState: String?
-  private var originalUserAgent: String?
 
   public init(
     url: URL,
@@ -75,6 +74,7 @@ public final class LoginWebViewController: UIViewController {
 
   private func setup() {
     self.webView.navigationDelegate = self
+    self.webView.uiDelegate = self
     self.webView.allowsBackForwardNavigationGestures = true
     print("[LoginWebViewController] loading url: \(self.url)")
     self.webView.load(URLRequest(url: self.url))
@@ -103,24 +103,29 @@ public final class LoginWebViewController: UIViewController {
   }
   // MARK: - Google Login UA Workaround
 
-  private var isUsingAndroidUserAgent = false
-
   private var androidUserAgent: String {
-    var ua = "Mozilla/5.0 (Linux; Android 15; SM-S928N Build/AP3A.240905.015.A2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.7151.91 Mobile Safari/537.36"
+    // 실제 Chrome Android UA와 동일 포맷. `Build/...` 토큰은 Android WebView 전용
+    // 시그널이라 구글이 이걸 보면 embedded browser로 차단("안전하지 않을 수 있습니다").
+    var ua = "Mozilla/5.0 (Linux; Android 15; SM-S928N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.7151.91 Mobile Safari/537.36"
     if let externalUserAgent {
       ua += " \(externalUserAgent)"
     }
     return ua
   }
 
-  private static let googleLoginHosts: Set<String> = [
+  private static let googleLoginURLFragments: [String] = [
+    // zum 진입점에서 미리 Android UA로 전환해야 안전.
+    // accounts.google.com 도달 후 교체하면 redirect 체인상 iOS UA로 이미 요청되어
+    // 구글이 embedded browser로 차단할 수 있음.
+    "sign.zum.com/oauth2/authorization/google",
     "accounts.google.com",
     "accounts.google.co.kr",
+    "sign.zum.com/oauth2/authorization/facebook",
   ]
 
   private func isGoogleLoginURL(_ url: URL) -> Bool {
-    guard let host = url.host else { return false }
-    return Self.googleLoginHosts.contains(host)
+    let absolute = url.absoluteString
+    return Self.googleLoginURLFragments.contains { absolute.contains($0) }
   }
 }
 
@@ -139,22 +144,10 @@ extension LoginWebViewController: WKNavigationDelegate {
     }
     print("[LoginWebViewController] navigation: \(navigatingURL.absoluteString)")
 
-    // Google OAuth URL 감지 시 Android UA로 교체 후 cancel → reload
-    if isGoogleLoginURL(navigatingURL) && !isUsingAndroidUserAgent {
-      print("[LoginWebViewController] Google login detected — switching to Android UA and reloading")
-      originalUserAgent = webView.customUserAgent
+    // Google OAuth 계열 URL이면 Android UA로 전환 (그대로 allow, cancel/reload 금물 — 흰 화면 원인)
+    if isGoogleLoginURL(navigatingURL) {
+      print("[LoginWebViewController] Google login URL — switching to Android UA")
       webView.customUserAgent = androidUserAgent
-      isUsingAndroidUserAgent = true
-      decisionHandler(.cancel)
-      webView.load(URLRequest(url: navigatingURL))
-      return
-    }
-
-    // Google 로그인 완료 후 원래 UA 복원
-    if isUsingAndroidUserAgent && !isGoogleLoginURL(navigatingURL) {
-      print("[LoginWebViewController] Google login done — restoring original UA")
-      webView.customUserAgent = originalUserAgent
-      isUsingAndroidUserAgent = false
     }
 
     // callback URL → ssoToken 추출 후 콜백 전달
@@ -279,5 +272,65 @@ extension LoginWebViewController: WKScriptMessageHandler {
     guard let json = payload.jsonString else { return }
     print("[LoginWebViewController] sendErrorResult — \(json)")
     webView.evaluateJavaScript("window.onNativeSnsLoginError(\(json))")
+  }
+}
+
+
+// MARK: - WKUIDelegate
+
+// Google OAuth는 embedded browser 판정을 위해 JS dialog / window.open 같은
+// 표준 브라우저 기능이 살아있는지 본다. uiDelegate 없이 두면 전부 무시돼
+// "브라우저 또는 앱이 안전하지 않을 수 있습니다"로 이어질 수 있음.
+extension LoginWebViewController: WKUIDelegate {
+  public func webView(
+    _ webView: WKWebView,
+    createWebViewWith configuration: WKWebViewConfiguration,
+    for navigationAction: WKNavigationAction,
+    windowFeatures: WKWindowFeatures
+  ) -> WKWebView? {
+    // target="_blank" / window.open() 은 동일 webView에서 이어서 로드
+    if navigationAction.targetFrame == nil, let url = navigationAction.request.url {
+      webView.load(URLRequest(url: url))
+    }
+    return nil
+  }
+
+  public func webView(
+    _ webView: WKWebView,
+    runJavaScriptAlertPanelWithMessage message: String,
+    initiatedByFrame frame: WKFrameInfo,
+    completionHandler: @escaping () -> Void
+  ) {
+    let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
+    alert.addAction(UIAlertAction(title: "확인", style: .default) { _ in completionHandler() })
+    present(alert, animated: true)
+  }
+
+  public func webView(
+    _ webView: WKWebView,
+    runJavaScriptConfirmPanelWithMessage message: String,
+    initiatedByFrame frame: WKFrameInfo,
+    completionHandler: @escaping (Bool) -> Void
+  ) {
+    let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
+    alert.addAction(UIAlertAction(title: "취소", style: .cancel) { _ in completionHandler(false) })
+    alert.addAction(UIAlertAction(title: "확인", style: .default) { _ in completionHandler(true) })
+    present(alert, animated: true)
+  }
+
+  public func webView(
+    _ webView: WKWebView,
+    runJavaScriptTextInputPanelWithPrompt prompt: String,
+    defaultText: String?,
+    initiatedByFrame frame: WKFrameInfo,
+    completionHandler: @escaping (String?) -> Void
+  ) {
+    let alert = UIAlertController(title: nil, message: prompt, preferredStyle: .alert)
+    alert.addTextField { $0.text = defaultText }
+    alert.addAction(UIAlertAction(title: "취소", style: .cancel) { _ in completionHandler(nil) })
+    alert.addAction(UIAlertAction(title: "확인", style: .default) { _ in
+      completionHandler(alert.textFields?.first?.text)
+    })
+    present(alert, animated: true)
   }
 }
