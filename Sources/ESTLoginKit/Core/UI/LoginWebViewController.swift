@@ -48,7 +48,6 @@ public final class LoginWebViewController: UIViewController {
     webView.allowsBackForwardNavigationGestures = true
     self.webView = webView
     super.init(nibName: nil, bundle: nil)
-    onWebViewCreated?(webView)
     print("[LoginWebViewController] init — url: \(url)")
   }
 
@@ -80,6 +79,10 @@ public final class LoginWebViewController: UIViewController {
     self.webView.navigationDelegate = self
     self.webView.uiDelegate = self
     self.webView.allowsBackForwardNavigationGestures = true
+
+    // delegate 다 붙은 뒤 콜백 → 호스트가 setWebViewBridge 호출하면 Hackle이 우리 delegate를 wrap
+    onWebViewCreated?(self.webView)
+
     print("[LoginWebViewController] loading url: \(self.url)")
     self.webView.load(URLRequest(url: self.url))
 
