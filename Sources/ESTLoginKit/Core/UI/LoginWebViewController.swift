@@ -13,6 +13,7 @@ public final class LoginWebViewController: UIViewController {
   private let callbackURL: String?
   private let externalUserAgent: String?
   private let inspectable: Bool
+  private let onWebViewCreated: ((WKWebView) -> Void)?
   private let completion: ((String?) -> Void)?
 
   private let webView: WKWebView
@@ -23,12 +24,14 @@ public final class LoginWebViewController: UIViewController {
     callbackURL: String? = nil,
     externalUserAgent: String? = nil,
     inspectable: Bool = false,
+    onWebViewCreated: ((WKWebView) -> Void)? = nil,
     completion: ((String?) -> Void)? = nil
   ) {
     self.url = url
     self.callbackURL = callbackURL
     self.externalUserAgent = externalUserAgent
     self.inspectable = inspectable
+    self.onWebViewCreated = onWebViewCreated
     self.completion = completion
     self.initialState = url.queryValue(for: "state")
 
@@ -41,10 +44,11 @@ public final class LoginWebViewController: UIViewController {
     if #available(iOS 16.4, *) {
       webView.isInspectable = inspectable
     }
-    
+
     webView.allowsBackForwardNavigationGestures = true
     self.webView = webView
     super.init(nibName: nil, bundle: nil)
+    onWebViewCreated?(webView)
     print("[LoginWebViewController] init — url: \(url)")
   }
 

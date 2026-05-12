@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import WebKit
 
 public struct LoginWebView: UIViewControllerRepresentable {
 
@@ -13,6 +14,7 @@ public struct LoginWebView: UIViewControllerRepresentable {
   private let callbackURL: String?
   private let externalUserAgent: String?
   private let inspectable: Bool
+  private let onWebViewCreated: ((WKWebView) -> Void)?
   private let completion: ((String?) -> Void)?
 
   public init(
@@ -20,12 +22,14 @@ public struct LoginWebView: UIViewControllerRepresentable {
     callbackURL: String? = nil,
     externalUserAgent: String? = nil,
     inspectable: Bool = false,
+    onWebViewCreated: ((WKWebView) -> Void)? = nil,
     completion: ((String?) -> Void)? = nil
   ) {
     self.url = url
     self.callbackURL = callbackURL
     self.externalUserAgent = externalUserAgent
     self.inspectable = inspectable
+    self.onWebViewCreated = onWebViewCreated
     self.completion = completion
   }
 
@@ -35,6 +39,7 @@ public struct LoginWebView: UIViewControllerRepresentable {
       callbackURL: callbackURL,
       externalUserAgent: externalUserAgent,
       inspectable: inspectable,
+      onWebViewCreated: onWebViewCreated,
       completion: completion
     )
   }
