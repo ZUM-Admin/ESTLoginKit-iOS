@@ -259,12 +259,8 @@ extension LoginWebViewController: WKScriptMessageHandler {
   }
 
   private func errorCode(from error: Error) -> String {
-    guard let authError = error as? AuthError else { return "sdk_error" }
-    switch authError {
-    case .unknown(nil): return "cancelled"
-    case .unknown:      return "sdk_error"
-    case .unsupportedPlatform: return "sdk_error"
-    }
+    if case AuthError.cancelled = error { return "cancelled" }
+    return "sdk_error"
   }
 
   @MainActor

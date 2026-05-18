@@ -9,6 +9,7 @@ import Foundation
 
 public enum AuthError: Error {
   case unsupportedPlatform
+  case cancelled
   case unknown(Error?)
 }
 

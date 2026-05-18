@@ -22,7 +22,11 @@ final class NaverAuthProvider: NSObject, AuthProvider {
             refreshToken: loginResult.refreshToken.tokenString
           ))
         case .failure(let error):
-          continuation.resume(throwing: error)
+          if case NidError.clientError(.canceledByUser) = error {
+            continuation.resume(throwing: AuthError.cancelled)
+          } else {
+            continuation.resume(throwing: error)
+          }
         }
       }
     }

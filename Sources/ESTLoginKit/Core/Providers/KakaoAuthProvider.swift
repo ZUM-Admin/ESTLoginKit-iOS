@@ -29,7 +29,7 @@ final class KakaoAuthProvider: AuthProvider {
     return try await withCheckedThrowingContinuation { continuation in
       UserApi.shared.loginWithKakaoTalk { (oauthToken, error) in
         if let error = error {
-          continuation.resume(throwing: error)
+          continuation.resume(throwing: Self.mapError(error))
         } else if let token = oauthToken {
           continuation.resume(returning: AuthResult(
             authorizeToken: token.accessToken,
@@ -45,7 +45,7 @@ final class KakaoAuthProvider: AuthProvider {
     return try await withCheckedThrowingContinuation { continuation in
       UserApi.shared.loginWithKakaoAccount { (oauthToken, error) in
         if let error = error {
-          continuation.resume(throwing: error)
+          continuation.resume(throwing: Self.mapError(error))
         } else if let token = oauthToken {
           continuation.resume(returning: AuthResult(
             authorizeToken: token.accessToken,
@@ -54,5 +54,12 @@ final class KakaoAuthProvider: AuthProvider {
         }
       }
     }
+  }
+
+  private static func mapError(_ error: Error) -> Error {
+    if case SdkError.ClientFailed(reason: .Cancelled, _) = error {
+      return AuthError.cancelled
+    }
+    return error
   }
 }
