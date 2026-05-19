@@ -60,6 +60,9 @@ final class KakaoAuthProvider: AuthProvider {
     if case SdkError.ClientFailed(reason: .Cancelled, _) = error {
       return AuthError.cancelled
     }
+    if case SdkError.AuthFailed(reason: .AccessDenied, _) = error {
+      return AuthError.cancelled
+    }
     return error
   }
 }
