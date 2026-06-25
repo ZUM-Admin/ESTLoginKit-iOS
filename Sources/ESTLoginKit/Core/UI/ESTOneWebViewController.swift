@@ -1,5 +1,5 @@
 //
-//  LoginWebViewController.swift
+//  ESTOneWebViewController.swift
 //  ESTLoginKit
 //
 //  Created by ESTAID on 2/25/26.
@@ -8,12 +8,14 @@
 import UIKit
 import WebKit
 
-public final class LoginWebViewController: UIViewController {
+public final class ESTOneWebViewController: UIViewController {
   private let url: URL
   private let callbackURL: String?
   private let externalUserAgent: String?
   private let inspectable: Bool
   private let onWebViewCreated: ((WKWebView) -> Void)?
+  private let onPasswordChanged: (() -> Void)?
+  private let onAccountDeleted: (() -> Void)?
   private let completion: ((String?) -> Void)?
 
   private let webView: WKWebView
@@ -25,6 +27,8 @@ public final class LoginWebViewController: UIViewController {
     externalUserAgent: String? = nil,
     inspectable: Bool = false,
     onWebViewCreated: ((WKWebView) -> Void)? = nil,
+    onPasswordChanged: (() -> Void)? = nil,
+    onAccountDeleted: (() -> Void)? = nil,
     completion: ((String?) -> Void)? = nil
   ) {
     self.url = url
@@ -32,6 +36,8 @@ public final class LoginWebViewController: UIViewController {
     self.externalUserAgent = externalUserAgent
     self.inspectable = inspectable
     self.onWebViewCreated = onWebViewCreated
+    self.onPasswordChanged = onPasswordChanged
+    self.onAccountDeleted = onAccountDeleted
     self.completion = completion
     self.initialState = url.queryValue(for: "state")
 
@@ -48,7 +54,7 @@ public final class LoginWebViewController: UIViewController {
     webView.allowsBackForwardNavigationGestures = true
     self.webView = webView
     super.init(nibName: nil, bundle: nil)
-    print("[LoginWebViewController] init — url: \(url)")
+    print("[ESTOneWebViewController] init — url: \(url)")
   }
 
   required init?(coder: NSCoder) {
@@ -63,7 +69,7 @@ public final class LoginWebViewController: UIViewController {
   }
 
   private func registerMessageHandlers() {
-    print("[LoginWebViewController] registering message handlers")
+    print("[ESTOneWebViewController] registering message handlers")
     WebViewMessage.allCases.forEach { message in
       self.webView.configuration.userContentController
         .removeScriptMessageHandler(forName: message.rawValue)
@@ -71,7 +77,7 @@ public final class LoginWebViewController: UIViewController {
         LeakAvoider(delegate: self),
         name: message.rawValue
       )
-      print("[LoginWebViewController] registered handler: \(message.rawValue)")
+      print("[ESTOneWebViewController] registered handler: \(message.rawValue)")
     }
   }
 
@@ -83,7 +89,7 @@ public final class LoginWebViewController: UIViewController {
     // delegate 다 붙은 뒤 콜백 → 호스트가 setWebViewBridge 호출하면 Hackle이 우리 delegate를 wrap
     onWebViewCreated?(self.webView)
 
-    print("[LoginWebViewController] loading url: \(self.url)")
+    print("[ESTOneWebViewController] loading url: \(self.url)")
     self.webView.load(URLRequest(url: self.url))
 
     if let externalUserAgent {
@@ -100,7 +106,7 @@ public final class LoginWebViewController: UIViewController {
       }
 
       self.webView.customUserAgent = result + " \(userAgent)"
-      print("[LoginWebViewController] userAgent set: \(self.webView.customUserAgent ?? "")")
+      print("[ESTOneWebViewController] userAgent set: \(self.webView.customUserAgent ?? "")")
     }
   }
 
@@ -121,13 +127,10 @@ public final class LoginWebViewController: UIViewController {
   }
 
   private static let googleLoginURLFragments: [String] = [
-    // zum 진입점에서 미리 Android UA로 전환해야 안전.
-    // accounts.google.com 도달 후 교체하면 redirect 체인상 iOS UA로 이미 요청되어
-    // 구글이 embedded browser로 차단할 수 있음.
-    "sign.zum.com/oauth2/authorization/google",
+    // 감지 즉시 cancel→reload로 Android UA를 적용한다.
+    // (decidePolicyFor에서 UA만 바꾸면 현재 navigation에는 반영되지 않으므로 reload 필수)
     "accounts.google.com",
     "accounts.google.co.kr",
-    "sign.zum.com/oauth2/authorization/facebook",
   ]
 
   private func isGoogleLoginURL(_ url: URL) -> Bool {
@@ -139,7 +142,7 @@ public final class LoginWebViewController: UIViewController {
 
 // MARK: - WKNavigationDelegate
 
-extension LoginWebViewController: WKNavigationDelegate {
+extension ESTOneWebViewController: WKNavigationDelegate {
   public func webView(
     _ webView: WKWebView,
     decidePolicyFor navigationAction: WKNavigationAction,
@@ -149,19 +152,24 @@ extension LoginWebViewController: WKNavigationDelegate {
       decisionHandler(.allow)
       return
     }
-    print("[LoginWebViewController] navigation: \(navigatingURL.absoluteString)")
+    print("[ESTOneWebViewController] navigation: \(navigatingURL.absoluteString)")
 
-    // Google OAuth 계열 URL이면 Android UA로 전환 (그대로 allow, cancel/reload 금물 — 흰 화면 원인)
-    if isGoogleLoginURL(navigatingURL) {
-      print("[LoginWebViewController] Google login URL — switching to Android UA")
+    // Google OAuth URL → Android UA로 교체 후 cancel→reload.
+    // (현재 navigation에는 UA 변경이 적용되지 않으므로 reload 필수.
+    //  이미 Android UA면 통과시켜 무한 reload 방지.)
+    if isGoogleLoginURL(navigatingURL), webView.customUserAgent != androidUserAgent {
+      print("[ESTOneWebViewController] Google login URL — switching to Android UA & reloading")
       webView.customUserAgent = androidUserAgent
+      decisionHandler(.cancel)
+      webView.load(URLRequest(url: navigatingURL))
+      return
     }
 
     // callback URL → ssoToken 추출 후 콜백 전달
     if let callbackURL,
        navigatingURL.absoluteString.hasPrefix(callbackURL) {
       if let ssoToken = navigatingURL.queryValue(for: "code") {
-        print("[LoginWebViewController] callback with ssoToken — completing")
+        print("[ESTOneWebViewController] callback with ssoToken — completing")
         decisionHandler(.cancel)
         completion?(ssoToken)
         return
@@ -171,9 +179,19 @@ extension LoginWebViewController: WKNavigationDelegate {
     // state URL 매칭 → ssoToken 없이 콜백 전달
     if let state = initialState,
        navigatingURL.absoluteString.hasPrefix(state) {
-      print("[LoginWebViewController] state url match — completing with url: \(navigatingURL.absoluteString)")
+      print("[ESTOneWebViewController] state url match — completing with url: \(navigatingURL.absoluteString)")
       decisionHandler(.allow)
       completion?(nil)
+      return
+    }
+
+    // non-HTTP 스킴 (tel://, mailto://, sms:// 등) → 시스템에 위임
+    if let scheme = navigatingURL.scheme,
+       scheme != "http",
+       scheme != "https" {
+      print("[ESTOneWebViewController] non-http scheme — delegating to system: \(navigatingURL.absoluteString)")
+      UIApplication.shared.open(navigatingURL)
+      decisionHandler(.cancel)
       return
     }
 
@@ -181,60 +199,93 @@ extension LoginWebViewController: WKNavigationDelegate {
   }
 
   public func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
-    print("[LoginWebViewController] didStartProvisionalNavigation")
+    print("[ESTOneWebViewController] didStartProvisionalNavigation")
   }
 
   public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-    print("[LoginWebViewController] didFinish — \(webView.url?.absoluteString ?? "")")
+    print("[ESTOneWebViewController] didFinish — \(webView.url?.absoluteString ?? "")")
   }
 
   public func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-    print("[LoginWebViewController] didFail — \(error)")
+    print("[ESTOneWebViewController] didFail — \(error)")
   }
 
   public func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
-    print("[LoginWebViewController] didFailProvisionalNavigation — \(error)")
+    print("[ESTOneWebViewController] didFailProvisionalNavigation — \(error)")
   }
 }
 
 
 // MARK: - WKScriptMessageHandler
 
-extension LoginWebViewController: WKScriptMessageHandler {
+extension ESTOneWebViewController: WKScriptMessageHandler {
   public func userContentController(
     _ userContentController: WKUserContentController,
     didReceive message: WKScriptMessage
   ) {
-    print("[LoginWebViewController] message received — name: \(message.name), body: \(message.body)")
+    print("[ESTOneWebViewController] message received — name: \(message.name), body: \(message.body)")
 
-    guard let action = WebViewMessage(rawValue: message.name),
-          let body = message.body as? String,
-          let data = body.data(using: .utf8),
-          let dto = action.decode(from: data)
-    else {
-      print("[LoginWebViewController] message parse failed — name: \(message.name)")
+    guard let action = WebViewMessage(rawValue: message.name) else {
+      print("[ESTOneWebViewController] unknown message — name: \(message.name)")
       return
     }
 
-    handleAction(action, payload: dto)
+    switch action {
+    case .requestSnsLogin:
+      guard let body = message.body as? String,
+            let data = body.data(using: .utf8),
+            let dto = action.decode(from: data)
+      else {
+        print("[ESTOneWebViewController] message parse failed — name: \(message.name)")
+        return
+      }
+      handleAction(action, payload: dto)
+
+    case .onLoginComplete:
+      // 관찰 전용 — 어떤 payload가 내려오는지 로그로만 확인 (dismiss/redirect 미구현)
+      print("[ESTOneWebViewController] onLoginComplete — bodyType: \(type(of: message.body)), raw: \(message.body)")
+      if let body = message.body as? String,
+         let data = body.data(using: .utf8),
+         let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+        print("[ESTOneWebViewController] onLoginComplete — parsed(String→JSON): code=\(dict["code"] ?? "nil"), state=\(dict["state"] ?? "nil")")
+      } else if let dict = message.body as? [String: Any] {
+        print("[ESTOneWebViewController] onLoginComplete — parsed(dict): code=\(dict["code"] ?? "nil"), state=\(dict["state"] ?? "nil")")
+      } else {
+        print("[ESTOneWebViewController] onLoginComplete — payload not JSON/dict")
+      }
+
+    case .onPasswordChanged:
+      // 비밀번호 변경 통지 → 호스트가 silent 모드로 토큰 재발급 (§7)
+      print("[ESTOneWebViewController] onPasswordChanged")
+      onPasswordChanged?()
+
+    case .onAccountDeleted:
+      // 회원 탈퇴 통지 → 호스트가 로그아웃 처리 (§7)
+      print("[ESTOneWebViewController] onAccountDeleted")
+      onAccountDeleted?()
+    }
   }
 
   private func handleAction(_ action: WebViewMessage, payload: Decodable) {
     switch action {
+    case .onLoginComplete, .onPasswordChanged, .onAccountDeleted:
+      // userContentController에서 직접 처리됨
+      break
+
     case .requestSnsLogin:
       guard let loginDTO = payload as? RequestLoginDTO,
             let platform = LoginPlatform(rawValue: loginDTO.provider.rawValue)
       else {
-        print("[LoginWebViewController] requestSnsLogin — invalid payload")
+        print("[ESTOneWebViewController] requestSnsLogin — invalid payload")
         return
       }
 
-      print("[LoginWebViewController] requestSnsLogin — provider: \(loginDTO.provider.rawValue)")
+      print("[ESTOneWebViewController] requestSnsLogin — provider: \(loginDTO.provider.rawValue)")
 
       Task {
         do {
           let result = try await ESTLoginManager.shared.login(with: platform)
-          print("[LoginWebViewController] login success — provider: \(loginDTO.provider.rawValue), token: \(result.authorizeToken.prefix(20))...")
+          print("[ESTOneWebViewController] login success — provider: \(loginDTO.provider.rawValue), token: \(result.authorizeToken.prefix(20))...")
           sendSuccessResult(
             SNSLoginSuccessPayload(
               provider: loginDTO.provider.rawValue,
@@ -245,7 +296,7 @@ extension LoginWebViewController: WKScriptMessageHandler {
             )
           )
         } catch {
-          print("[LoginWebViewController] login failed — provider: \(loginDTO.provider.rawValue), error: \(error)")
+          print("[ESTOneWebViewController] login failed — provider: \(loginDTO.provider.rawValue), error: \(error)")
           sendErrorResult(
             SNSLoginErrorPayload(
               code: errorCode(from: error),
@@ -266,14 +317,14 @@ extension LoginWebViewController: WKScriptMessageHandler {
   @MainActor
   private func sendSuccessResult(_ payload: SNSLoginSuccessPayload) {
     guard let json = payload.jsonString else { return }
-    print("[LoginWebViewController] sendSuccessResult — \(json)")
+    print("[ESTOneWebViewController] sendSuccessResult — \(json)")
     webView.evaluateJavaScript("window.onNativeSnsLoginResult(\(json))")
   }
 
   @MainActor
   private func sendErrorResult(_ payload: SNSLoginErrorPayload) {
     guard let json = payload.jsonString else { return }
-    print("[LoginWebViewController] sendErrorResult — \(json)")
+    print("[ESTOneWebViewController] sendErrorResult — \(json)")
     webView.evaluateJavaScript("window.onNativeSnsLoginError(\(json))")
   }
 }
@@ -284,7 +335,7 @@ extension LoginWebViewController: WKScriptMessageHandler {
 // Google OAuth는 embedded browser 판정을 위해 JS dialog / window.open 같은
 // 표준 브라우저 기능이 살아있는지 본다. uiDelegate 없이 두면 전부 무시돼
 // "브라우저 또는 앱이 안전하지 않을 수 있습니다"로 이어질 수 있음.
-extension LoginWebViewController: WKUIDelegate {
+extension ESTOneWebViewController: WKUIDelegate {
   public func webView(
     _ webView: WKWebView,
     createWebViewWith configuration: WKWebViewConfiguration,
