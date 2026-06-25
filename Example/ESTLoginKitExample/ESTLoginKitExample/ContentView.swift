@@ -39,14 +39,12 @@ struct ContentView: View {
   }
 
   private func startWebLogin() {
-    Task {
-      // SDK가 제공하는 loginURL 헬퍼를 사용하면 configuration의 clientId / baseURL이 자동 반영됩니다.
-      let url = await ESTLoginManager.shared.loginURL(
-        redirectURL: callbackURL,
-        state: "YOUR_STATE"
-      )
-      await MainActor.run { webLoginURL = url }
-    }
+    // SDK가 제공하는 loginURL 헬퍼를 사용하면 configuration의 clientId / baseURL이 자동 반영됩니다.
+    // (nonisolated 동기 메서드라 await 불필요)
+    webLoginURL = ESTLoginManager.shared.loginURL(
+      redirectURL: callbackURL,
+      state: "YOUR_STATE"
+    )
   }
 }
 
