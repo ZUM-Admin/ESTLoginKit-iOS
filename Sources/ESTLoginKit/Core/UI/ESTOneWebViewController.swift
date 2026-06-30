@@ -20,6 +20,8 @@ public final class ESTOneWebViewController: UIViewController {
 
   private let webView: WKWebView
   private var initialState: String?
+  
+  private var ssoToken: String?
 
   public init(
     url: URL,
@@ -44,6 +46,14 @@ public final class ESTOneWebViewController: UIViewController {
     let config = WKWebViewConfiguration()
     config.websiteDataStore = WKWebsiteDataStore.default()
     config.preferences.javaScriptCanOpenWindowsAutomatically = true
+
+    // 기본 UA 뒤에 앱 식별 토큰을 append (예: "... zumapp/3.13.3").
+    // customUserAgent(전체 교체)와 달리 webView 생성 시점에 박혀서 첫 로드부터 적용되고,
+    // navigator.userAgent를 비동기로 읽어 붙일 필요가 없다.
+    // Google 로그인 시에는 decidePolicyFor에서 customUserAgent로 덮어써 우회한다(우선순위 높음).
+    if let externalUserAgent {
+      config.applicationNameForUserAgent = externalUserAgent
+    }
 
     let webView = WKWebView(frame: CGRect.zero, configuration: config)
 
@@ -91,23 +101,6 @@ public final class ESTOneWebViewController: UIViewController {
 
     print("[ESTOneWebViewController] loading url: \(self.url)")
     self.webView.load(URLRequest(url: self.url))
-
-    if let externalUserAgent {
-      addUserAgent(externalUserAgent)
-    }
-  }
-
-  private func addUserAgent(_ userAgent: String) {
-    self.webView.evaluateJavaScript("navigator.userAgent") { [weak self] result, error in
-      guard let self,
-            let result = result as? String
-      else {
-        return
-      }
-
-      self.webView.customUserAgent = result + " \(userAgent)"
-      print("[ESTOneWebViewController] userAgent set: \(self.webView.customUserAgent ?? "")")
-    }
   }
 
   private func setupLayout() {
@@ -137,6 +130,10 @@ public final class ESTOneWebViewController: UIViewController {
     let absolute = url.absoluteString
     return Self.googleLoginURLFragments.contains { absolute.contains($0) }
   }
+  
+  private func ssoToken(_ url: URL) -> String? {
+    return url.queryValue(for: "code")
+  }
 }
 
 
@@ -153,6 +150,11 @@ extension ESTOneWebViewController: WKNavigationDelegate {
       return
     }
     print("[ESTOneWebViewController] navigation: \(navigatingURL.absoluteString)")
+    
+    if self.ssoToken == nil {
+      self.ssoToken = ssoToken(navigatingURL)
+      print("[ESTOneWebViewController] ssoToken: \(self.ssoToken)")
+    } 
 
     // Google OAuth URL → Android UA로 교체 후 cancel→reload.
     // (현재 navigation에는 UA 변경이 적용되지 않으므로 reload 필수.
@@ -168,12 +170,10 @@ extension ESTOneWebViewController: WKNavigationDelegate {
     // callback URL → ssoToken 추출 후 콜백 전달
     if let callbackURL,
        navigatingURL.absoluteString.hasPrefix(callbackURL) {
-      if let ssoToken = navigatingURL.queryValue(for: "code") {
-        print("[ESTOneWebViewController] callback with ssoToken — completing")
-        decisionHandler(.cancel)
-        completion?(ssoToken)
-        return
-      }
+      print("[ESTOneWebViewController] callback with ssoToken — completing")
+      decisionHandler(.cancel)
+      completion?(self.ssoToken)
+      return
     }
 
     // state URL 매칭 → ssoToken 없이 콜백 전달
@@ -181,7 +181,7 @@ extension ESTOneWebViewController: WKNavigationDelegate {
        navigatingURL.absoluteString.hasPrefix(state) {
       print("[ESTOneWebViewController] state url match — completing with url: \(navigatingURL.absoluteString)")
       decisionHandler(.allow)
-      completion?(nil)
+      completion?(self.ssoToken)
       return
     }
 

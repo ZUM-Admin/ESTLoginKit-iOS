@@ -3,15 +3,17 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 55;
 	objects = {
 
 /* Begin PBXBuildFile section */
 		0D2E23EB410C659091D29595 /* KakaoSDKCommon.framework in Dependencies */ = {isa = PBXBuildFile; fileRef = 869C1C559A99E485B6DEA602 /* KakaoSDKCommon.framework */; };
+		118EA2F81E25FFFE5B4AA5BF /* MyPageWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8780495EC28EB16F9E2B87B3 /* MyPageWebView.swift */; };
 		239BE044F3BE8BF14BB93670 /* LoginWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13BAF460CE0412B1E0874BCD /* LoginWebView.swift */; };
 		293AFC9F3846352679AF42FF /* RequestLoginDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = F090432930CB6A6BE7CD581A /* RequestLoginDTO.swift */; };
 		2A1E4A9B0059D1276201411F /* JSONDecoder+.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DB4B21CD71B47EF1C54EA35 /* JSONDecoder+.swift */; };
 		338C6CF4FEE892A3617F9B8A /* KakaoConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 880D0102DF0812738555880F /* KakaoConfiguration.swift */; };
+		34CEB00A0984EBEE593527B7 /* ESTOneWebViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E39CDAA5CB6DBB7973ABB76C /* ESTOneWebViewController.swift */; };
 		478B2B6DEE6410483D508DCD /* ESTLoginConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F6EC2870B3CC74846A0E5A5 /* ESTLoginConfiguration.swift */; };
 		4C84E6D0BFC5275CE2050939 /* SNSLoginSuccessPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 492BD9275E1F01FD29E5A843 /* SNSLoginSuccessPayload.swift */; };
 		52AA8646ADDF2CB62FA36EB2 /* LeakAvoider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A30823091D9CD17D6CAB1A6C /* LeakAvoider.swift */; };
@@ -19,8 +21,6 @@
 		5EF75CE39B70F2200F852176 /* NaverAuthProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32C59065C818BCD596761114 /* NaverAuthProvider.swift */; };
 		6EFF86D7E21E67A9280D2E7A /* KakaoSDKUser.framework in Dependencies */ = {isa = PBXBuildFile; fileRef = 23942043569E7D61E3B3F65F /* KakaoSDKUser.framework */; };
 		709748D61FCA7E6282F61782 /* WebViewMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FB9DD83DA5F09AE1111E1BB /* WebViewMessage.swift */; };
-		8C3F34CA2FECC98B004D4DFD /* MyPageWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C3F34C92FECC98B004D4DFD /* MyPageWebView.swift */; };
-		8C3F34CB2FECC98B004D4DFD /* ESTOneWebViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C3F34C82FECC98B004D4DFD /* ESTOneWebViewController.swift */; };
 		8CF0D8483413CEE25E2F28C6 /* AuthProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D40DCA852CB8CC5A7BC4E55 /* AuthProvider.swift */; };
 		9352BC09109C1EED3556351A /* NidThirdPartyLogin.framework in Dependencies */ = {isa = PBXBuildFile; fileRef = E49A18A2FE324FAE5BBB7063 /* NidThirdPartyLogin.framework */; };
 		B7E191D4EEC9F61C0BCCD068 /* KakaoSDKAuth.framework in Dependencies */ = {isa = PBXBuildFile; fileRef = EE3AB6806A0F39A5CA3886AB /* KakaoSDKAuth.framework */; };
@@ -72,10 +72,9 @@
 		6AC71B678A255DAE7DF26F1C /* ESTLoginKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = ESTLoginKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		6FB9DD83DA5F09AE1111E1BB /* WebViewMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewMessage.swift; sourceTree = "<group>"; };
 		869C1C559A99E485B6DEA602 /* KakaoSDKCommon.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = KakaoSDKCommon.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		8780495EC28EB16F9E2B87B3 /* MyPageWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyPageWebView.swift; sourceTree = "<group>"; };
 		880D0102DF0812738555880F /* KakaoConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KakaoConfiguration.swift; sourceTree = "<group>"; };
 		8AA46CD2C4F834BC53542C5B /* ESTLoginManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ESTLoginManager.swift; sourceTree = "<group>"; };
-		8C3F34C82FECC98B004D4DFD /* ESTOneWebViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ESTOneWebViewController.swift; sourceTree = "<group>"; };
-		8C3F34C92FECC98B004D4DFD /* MyPageWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyPageWebView.swift; sourceTree = "<group>"; };
 		97B95006B2A4CD682541F0D8 /* AuthError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthError.swift; sourceTree = "<group>"; };
 		996B0F0B34E8429AFE6A553E /* JSONEncoder+.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "JSONEncoder+.swift"; sourceTree = "<group>"; };
 		9D40DCA852CB8CC5A7BC4E55 /* AuthProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthProvider.swift; sourceTree = "<group>"; };
@@ -85,6 +84,7 @@
 		B95080759137551D20C0DB58 /* URL+.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "URL+.swift"; sourceTree = "<group>"; };
 		DD54FFDF5E3736A7C3E64E2C /* AuthResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthResult.swift; sourceTree = "<group>"; };
 		E0FAB440F2878EA8D5091B91 /* SNSLoginErrorPayload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SNSLoginErrorPayload.swift; sourceTree = "<group>"; };
+		E39CDAA5CB6DBB7973ABB76C /* ESTOneWebViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ESTOneWebViewController.swift; sourceTree = "<group>"; };
 		E49A18A2FE324FAE5BBB7063 /* NidThirdPartyLogin.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = NidThirdPartyLogin.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		EE3AB6806A0F39A5CA3886AB /* KakaoSDKAuth.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = KakaoSDKAuth.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		F090432930CB6A6BE7CD581A /* RequestLoginDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RequestLoginDTO.swift; sourceTree = "<group>"; };
@@ -104,11 +104,11 @@
 		01E62EE2454346A077FA7A0F /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				E39CDAA5CB6DBB7973ABB76C /* ESTOneWebViewController.swift */,
 				A30823091D9CD17D6CAB1A6C /* LeakAvoider.swift */,
 				13BAF460CE0412B1E0874BCD /* LoginWebView.swift */,
+				8780495EC28EB16F9E2B87B3 /* MyPageWebView.swift */,
 				6FB9DD83DA5F09AE1111E1BB /* WebViewMessage.swift */,
-				8C3F34C82FECC98B004D4DFD /* ESTOneWebViewController.swift */,
-				8C3F34C92FECC98B004D4DFD /* MyPageWebView.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -278,6 +278,8 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 9999;
+				TargetAttributes = {
+				};
 			};
 			buildConfigurationList = 525A6A84518A38A94F95E17C /* Build configuration list for PBXProject "ESTLoginKit" */;
 			compatibilityVersion = "Xcode 14.0";
@@ -325,10 +327,10 @@
 				8CF0D8483413CEE25E2F28C6 /* AuthProvider.swift in Sources */,
 				D43080A1C6979DA5A1B7DF45 /* KakaoAuthProvider.swift in Sources */,
 				5EF75CE39B70F2200F852176 /* NaverAuthProvider.swift in Sources */,
-				8C3F34CA2FECC98B004D4DFD /* MyPageWebView.swift in Sources */,
-				8C3F34CB2FECC98B004D4DFD /* ESTOneWebViewController.swift in Sources */,
+				34CEB00A0984EBEE593527B7 /* ESTOneWebViewController.swift in Sources */,
 				52AA8646ADDF2CB62FA36EB2 /* LeakAvoider.swift in Sources */,
 				239BE044F3BE8BF14BB93670 /* LoginWebView.swift in Sources */,
+				118EA2F81E25FFFE5B4AA5BF /* MyPageWebView.swift in Sources */,
 				709748D61FCA7E6282F61782 /* WebViewMessage.swift in Sources */,
 				2A1E4A9B0059D1276201411F /* JSONDecoder+.swift in Sources */,
 				F39C16359835D803173B6653 /* JSONEncoder+.swift in Sources */,
@@ -435,9 +437,16 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
-				OTHER_SWIFT_FLAGS = "$(inherited) -package-name ESTLoginKit";
+				OTHER_SWIFT_FLAGS = (
+					"$(inherited)",
+					"-package-name",
+					ESTLoginKit,
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) SWIFT_PACKAGE";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = (
+					"$(inherited)",
+					SWIFT_PACKAGE,
+				);
 				SWIFT_SUPPRESS_WARNINGS = YES;
 				USE_HEADERMAP = NO;
 			};
@@ -469,7 +478,10 @@
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = (
+					"$(inherited)",
+					DEBUG,
+				);
 				SWIFT_COMPILATION_MODE = singlefile;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -536,9 +548,16 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
-				OTHER_SWIFT_FLAGS = "$(inherited) -package-name ESTLoginKit";
+				OTHER_SWIFT_FLAGS = (
+					"$(inherited)",
+					"-package-name",
+					ESTLoginKit,
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) SWIFT_PACKAGE";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = (
+					"$(inherited)",
+					SWIFT_PACKAGE,
+				);
 				SWIFT_SUPPRESS_WARNINGS = YES;
 				USE_HEADERMAP = NO;
 				VALIDATE_PRODUCT = YES;
