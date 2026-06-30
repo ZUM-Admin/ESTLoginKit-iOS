@@ -153,7 +153,7 @@ try await ESTLoginManager.shared.logout()
 
 본인인증은 로그인/회원가입과 **완전히 분리**되어 있습니다. 앱은 (1) 인증 여부를 조회하고, (2) 필요할 때 본인인증 화면을 직접 띄웁니다.
 
-> **`(미정)` 표기**: 백엔드 스펙(엔드포인트/응답/화면 URL/완료 콜백 방식)이 아직 확정되지 않은 부분입니다. 스펙 확정 후 시그니처가 바뀔 수 있습니다. (확정된 설계 원칙·구현된 기능에는 표기하지 않음)
+> **`(미정)` 표기**: 본인인증 **화면**(화면 URL / 완료 콜백 방식 / 결과 필드)의 백엔드 스펙이 아직 확정되지 않은 부분입니다. 스펙 확정 후 시그니처가 바뀔 수 있습니다. **상태 조회 API(`verificationStatus`)는 확정**되었습니다. (확정된 설계 원칙·구현된 기능에는 표기하지 않음)
 
 ### 1. 인증 여부 조회 — `verificationStatus`
 
@@ -161,21 +161,27 @@ SDK는 인증 상태를 동기적 사실로 조회하는 API만 제공합니다.
 
 ```swift
 public struct VerificationStatus {
-    public let isVerified: Bool
-    public let verifiedAt: Date?   // 인증 완료 시각 (옵션) (미정 — 응답 필드 확정 필요)
-    public let expiresAt: Date?    // 인증 만료 시각 (옵션) — 만료/갱신 판단용 (미정 — 응답 필드 확정 필요)
+    public let isVerified: Bool   // 응답 status == "CERTIFIED" 이면 true
 }
 
 extension ESTLoginManager {
-    /// 본인인증 여부를 조회합니다.
+    /// 회원 본인인증 상태를 조회합니다.
     /// - Parameter accessToken: 토큰 교환으로 발급받은 accessToken (SDK는 토큰을 보관하지 않으므로 호스트가 주입)
-    public func verificationStatus(accessToken: String) async throws -> VerificationStatus  // 시그니처는 응답 스펙에 따라 변경될 수 있음 (미정)
+    public func verificationStatus(accessToken: String) async throws -> VerificationStatus
 }
 ```
 
 > **토큰은 SDK가 보관하지 않습니다(stateless).** 조회 시 호스트가 `accessToken`을 주입합니다.
-> 내부적으로 `GET {AUTH_API}/{경로 (미정)}` 호출에 `Authorization: Bearer {accessToken}` 헤더를 사용합니다.
-> - AUTH_API base는 확정됨(운영/개발) / **상태조회 엔드포인트 경로·응답 JSON은 (미정)**
+> 내부적으로 다음을 호출합니다.
+>
+> ```http
+> GET /members/v1/certification/status
+> Authorization: Bearer {accessToken}
+> ```
+>
+> 응답(공통): `{ "result": { "status": "CERTIFIED" | "UNCERTIFIED" }, "message": "" }`
+> (`CERTIFIED`=완료, `UNCERTIFIED`=미인증이거나 존재하지 않는 회원). 인증 상태는 **통합회원 계정 단위**로
+> 관리되어 모든 계열사에서 동일하게 조회됩니다.
 
 ### 2. 본인인증 화면
 
