@@ -64,7 +64,7 @@ public final class ESTOneWebViewController: UIViewController {
     webView.allowsBackForwardNavigationGestures = true
     self.webView = webView
     super.init(nibName: nil, bundle: nil)
-    print("[ESTOneWebViewController] init — url: \(url)")
+    ESTLog.debug("init — url: \(url)")
   }
 
   required init?(coder: NSCoder) {
@@ -79,7 +79,7 @@ public final class ESTOneWebViewController: UIViewController {
   }
 
   private func registerMessageHandlers() {
-    print("[ESTOneWebViewController] registering message handlers")
+    ESTLog.debug("registering message handlers")
     WebViewMessage.allCases.forEach { message in
       self.webView.configuration.userContentController
         .removeScriptMessageHandler(forName: message.rawValue)
@@ -87,7 +87,7 @@ public final class ESTOneWebViewController: UIViewController {
         LeakAvoider(delegate: self),
         name: message.rawValue
       )
-      print("[ESTOneWebViewController] registered handler: \(message.rawValue)")
+      ESTLog.debug("registered handler: \(message.rawValue)")
     }
   }
 
@@ -99,7 +99,7 @@ public final class ESTOneWebViewController: UIViewController {
     // delegate 다 붙은 뒤 콜백 → 호스트가 setWebViewBridge 호출하면 Hackle이 우리 delegate를 wrap
     onWebViewCreated?(self.webView)
 
-    print("[ESTOneWebViewController] loading url: \(self.url)")
+    ESTLog.debug("loading url: \(self.url)")
     self.webView.load(URLRequest(url: self.url))
   }
 
@@ -149,18 +149,18 @@ extension ESTOneWebViewController: WKNavigationDelegate {
       decisionHandler(.allow)
       return
     }
-    print("[ESTOneWebViewController] navigation: \(navigatingURL.absoluteString)")
+    ESTLog.debug("navigation: \(navigatingURL.absoluteString)")
     
     if self.ssoToken == nil {
       self.ssoToken = ssoToken(navigatingURL)
-      print("[ESTOneWebViewController] ssoToken: \(self.ssoToken)")
+      ESTLog.debug("ssoToken: \(self.ssoToken)")
     } 
 
     // Google OAuth URL → Android UA로 교체 후 cancel→reload.
     // (현재 navigation에는 UA 변경이 적용되지 않으므로 reload 필수.
     //  이미 Android UA면 통과시켜 무한 reload 방지.)
     if isGoogleLoginURL(navigatingURL), webView.customUserAgent != androidUserAgent {
-      print("[ESTOneWebViewController] Google login URL — switching to Android UA & reloading")
+      ESTLog.debug("Google login URL — switching to Android UA & reloading")
       webView.customUserAgent = androidUserAgent
       decisionHandler(.cancel)
       webView.load(URLRequest(url: navigatingURL))
@@ -170,7 +170,7 @@ extension ESTOneWebViewController: WKNavigationDelegate {
     // callback URL → ssoToken 추출 후 콜백 전달
     if let callbackURL,
        navigatingURL.absoluteString.hasPrefix(callbackURL) {
-      print("[ESTOneWebViewController] callback with ssoToken — completing")
+      ESTLog.debug("callback with ssoToken — completing")
       decisionHandler(.cancel)
       completion?(self.ssoToken)
       return
@@ -179,7 +179,7 @@ extension ESTOneWebViewController: WKNavigationDelegate {
     // state URL 매칭 → ssoToken 없이 콜백 전달
     if let state = initialState,
        navigatingURL.absoluteString.hasPrefix(state) {
-      print("[ESTOneWebViewController] state url match — completing with url: \(navigatingURL.absoluteString)")
+      ESTLog.debug("state url match — completing with url: \(navigatingURL.absoluteString)")
       decisionHandler(.allow)
       completion?(self.ssoToken)
       return
@@ -189,7 +189,7 @@ extension ESTOneWebViewController: WKNavigationDelegate {
     if let scheme = navigatingURL.scheme,
        scheme != "http",
        scheme != "https" {
-      print("[ESTOneWebViewController] non-http scheme — delegating to system: \(navigatingURL.absoluteString)")
+      ESTLog.debug("non-http scheme — delegating to system: \(navigatingURL.absoluteString)")
       UIApplication.shared.open(navigatingURL)
       decisionHandler(.cancel)
       return
@@ -199,19 +199,19 @@ extension ESTOneWebViewController: WKNavigationDelegate {
   }
 
   public func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
-    print("[ESTOneWebViewController] didStartProvisionalNavigation")
+    ESTLog.debug("didStartProvisionalNavigation")
   }
 
   public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-    print("[ESTOneWebViewController] didFinish — \(webView.url?.absoluteString ?? "")")
+    ESTLog.debug("didFinish — \(webView.url?.absoluteString ?? "")")
   }
 
   public func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-    print("[ESTOneWebViewController] didFail — \(error)")
+    ESTLog.error("didFail — \(error)")
   }
 
   public func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
-    print("[ESTOneWebViewController] didFailProvisionalNavigation — \(error)")
+    ESTLog.error("didFailProvisionalNavigation — \(error)")
   }
 }
 
@@ -223,10 +223,10 @@ extension ESTOneWebViewController: WKScriptMessageHandler {
     _ userContentController: WKUserContentController,
     didReceive message: WKScriptMessage
   ) {
-    print("[ESTOneWebViewController] message received — name: \(message.name), body: \(message.body)")
+    ESTLog.debug("message received — name: \(message.name), body: \(message.body)")
 
     guard let action = WebViewMessage(rawValue: message.name) else {
-      print("[ESTOneWebViewController] unknown message — name: \(message.name)")
+      ESTLog.debug("unknown message — name: \(message.name)")
       return
     }
 
@@ -236,32 +236,32 @@ extension ESTOneWebViewController: WKScriptMessageHandler {
             let data = body.data(using: .utf8),
             let dto = action.decode(from: data)
       else {
-        print("[ESTOneWebViewController] message parse failed — name: \(message.name)")
+        ESTLog.error("message parse failed — name: \(message.name)")
         return
       }
       handleAction(action, payload: dto)
 
     case .onLoginComplete:
       // 관찰 전용 — 어떤 payload가 내려오는지 로그로만 확인 (dismiss/redirect 미구현)
-      print("[ESTOneWebViewController] onLoginComplete — bodyType: \(type(of: message.body)), raw: \(message.body)")
+      ESTLog.debug("onLoginComplete — bodyType: \(type(of: message.body)), raw: \(message.body)")
       if let body = message.body as? String,
          let data = body.data(using: .utf8),
          let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-        print("[ESTOneWebViewController] onLoginComplete — parsed(String→JSON): code=\(dict["code"] ?? "nil"), state=\(dict["state"] ?? "nil")")
+        ESTLog.debug("onLoginComplete — parsed(String→JSON): code=\(dict["code"] ?? "nil"), state=\(dict["state"] ?? "nil")")
       } else if let dict = message.body as? [String: Any] {
-        print("[ESTOneWebViewController] onLoginComplete — parsed(dict): code=\(dict["code"] ?? "nil"), state=\(dict["state"] ?? "nil")")
+        ESTLog.debug("onLoginComplete — parsed(dict): code=\(dict["code"] ?? "nil"), state=\(dict["state"] ?? "nil")")
       } else {
-        print("[ESTOneWebViewController] onLoginComplete — payload not JSON/dict")
+        ESTLog.debug("onLoginComplete — payload not JSON/dict")
       }
 
     case .onPasswordChanged:
       // 비밀번호 변경 통지 → 호스트가 silent 모드로 토큰 재발급 (§7)
-      print("[ESTOneWebViewController] onPasswordChanged")
+      ESTLog.debug("onPasswordChanged")
       onPasswordChanged?()
 
     case .onAccountDeleted:
       // 회원 탈퇴 통지 → 호스트가 로그아웃 처리 (§7)
-      print("[ESTOneWebViewController] onAccountDeleted")
+      ESTLog.debug("onAccountDeleted")
       onAccountDeleted?()
     }
   }
@@ -276,16 +276,16 @@ extension ESTOneWebViewController: WKScriptMessageHandler {
       guard let loginDTO = payload as? RequestLoginDTO,
             let platform = LoginPlatform(rawValue: loginDTO.provider.rawValue)
       else {
-        print("[ESTOneWebViewController] requestSnsLogin — invalid payload")
+        ESTLog.debug("requestSnsLogin — invalid payload")
         return
       }
 
-      print("[ESTOneWebViewController] requestSnsLogin — provider: \(loginDTO.provider.rawValue)")
+      ESTLog.debug("requestSnsLogin — provider: \(loginDTO.provider.rawValue)")
 
       Task {
         do {
           let result = try await ESTLoginManager.shared.login(with: platform)
-          print("[ESTOneWebViewController] login success — provider: \(loginDTO.provider.rawValue), token: \(result.authorizeToken.prefix(20))...")
+          ESTLog.info("login success — provider: \(loginDTO.provider.rawValue), token: \(result.authorizeToken.prefix(20))...")
           sendSuccessResult(
             SNSLoginSuccessPayload(
               provider: loginDTO.provider.rawValue,
@@ -296,7 +296,7 @@ extension ESTOneWebViewController: WKScriptMessageHandler {
             )
           )
         } catch {
-          print("[ESTOneWebViewController] login failed — provider: \(loginDTO.provider.rawValue), error: \(error)")
+          ESTLog.error("login failed — provider: \(loginDTO.provider.rawValue), error: \(error)")
           sendErrorResult(
             SNSLoginErrorPayload(
               code: errorCode(from: error),
@@ -317,14 +317,14 @@ extension ESTOneWebViewController: WKScriptMessageHandler {
   @MainActor
   private func sendSuccessResult(_ payload: SNSLoginSuccessPayload) {
     guard let json = payload.jsonString else { return }
-    print("[ESTOneWebViewController] sendSuccessResult — \(json)")
+    ESTLog.debug("sendSuccessResult — \(json)")
     webView.evaluateJavaScript("window.onNativeSnsLoginResult(\(json))")
   }
 
   @MainActor
   private func sendErrorResult(_ payload: SNSLoginErrorPayload) {
     guard let json = payload.jsonString else { return }
-    print("[ESTOneWebViewController] sendErrorResult — \(json)")
+    ESTLog.error("sendErrorResult — \(json)")
     webView.evaluateJavaScript("window.onNativeSnsLoginError(\(json))")
   }
 }

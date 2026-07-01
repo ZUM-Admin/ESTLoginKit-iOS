@@ -78,6 +78,7 @@ dependencies: [
 import ESTLoginKit
 
 let config = ESTLoginConfiguration.Builder(clientId: "YOUR_CLIENT_ID")
+    .useEnvironment(.development)   // 기본값 .production
     .useKakao(KakaoConfiguration(appKey: "YOUR_KAKAO_NATIVE_APP_KEY"))
     .useNaver(NaverConfiguration(appName: "앱이름", clientID: "CLIENT_ID", clientSecret: "SECRET", urlScheme: "YOUR_SCHEME"))
     .build()
@@ -85,12 +86,15 @@ let config = ESTLoginConfiguration.Builder(clientId: "YOUR_CLIENT_ID")
 await ESTLoginManager.shared.initialize(with: config)
 ```
 
-- 개발/스테이징 환경은 `.useBaseURL("https://test.estoneid.com")`로 지정합니다. (기본값 `https://estoneid.com`)
+- 실행 환경은 `.useEnvironment(.development)` / `.useEnvironment(.production)`로 지정합니다. (기본값 `.production`)
+- **웹 host와 API host가 환경에 따라 쌍으로 자동 결정**되므로 앱이 URL을 직접 넘기지 않습니다(불일치 방지).
 - URL 핸들링(`onOpenURL` / `application(_:open:)`), `Info.plist`(`LSApplicationQueriesSchemes`), 커스텀 URL 스킴 설정은 기존 README와 동일합니다.
 
-> 인증 서버(AUTH_API)는 `baseURL`에 대응하여 자동 결정됩니다.
-> - 운영: `https://api.estoneid.com/auth`
-> - 개발: `https://dev-api.estoneid.com/auth`
+> 환경별 host (`ESTEnvironment`가 소유):
+> | 환경 | 로그인 웹 | API |
+> |------|-----------|-----|
+> | `.production` | `https://estoneid.com` | `https://api.estoneid.com` |
+> | `.development` | `https://dev.estoneid.com` | `https://dev-api.estoneid.com` |
 
 ## 로그인
 

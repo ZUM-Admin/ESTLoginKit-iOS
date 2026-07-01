@@ -21,7 +21,7 @@ public final actor ESTLoginManager {
   private nonisolated(unsafe) static var _configuration: ESTLoginConfiguration?
   private nonisolated static let configurationLock = NSLock()
 
-  private nonisolated static var configuration: ESTLoginConfiguration? {
+  nonisolated static var configuration: ESTLoginConfiguration? {
     get {
       configurationLock.lock(); defer { configurationLock.unlock() }
       return _configuration
@@ -74,7 +74,7 @@ public final actor ESTLoginManager {
     await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
       UserApi.shared.logout { error in
         if let error = error {
-          print("[ESTLoginKit] Kakao logout error (ignored): \(error)")
+          ESTLog.error("Kakao logout error (ignored): \(error)")
         }
         continuation.resume()
       }
@@ -94,10 +94,10 @@ public final actor ESTLoginManager {
     let records = await store.dataRecords(ofTypes: allTypes)
     let targets = records.filter { $0.displayName.contains("estoneid.com") }
     guard !targets.isEmpty else {
-      print("[ESTLoginKit] clearWebSession — no estoneid.com records found")
+      ESTLog.debug("clearWebSession — no estoneid.com records found")
       return
     }
-    print("[ESTLoginKit] clearWebSession — removing \(targets.count) record(s): \(targets.map(\.displayName))")
+    ESTLog.debug("clearWebSession — removing \(targets.count) record(s): \(targets.map(\.displayName))")
     await store.removeData(ofTypes: allTypes, for: targets)
   }
 

@@ -55,7 +55,7 @@ SDK 통합 시 앱에서 직접 주입해야 하는 값 목록입니다. 값이 
 
 | 항목 | 주입 위치 | 기본값 / 설명 |
 |------|----------|-------------|
-| `baseURL` | `Builder.useBaseURL(_:)` | `https://estoneid.com`. 개발/스테이징 대응용 |
+| `environment` | `Builder.useEnvironment(_:)` | `.production`(기본) / `.development`. 웹·API host가 환경별로 함께 결정됨 |
 | `redirectURL` | `ESTLoginManager.shared.loginURL(redirectURL:)` | `{baseURL}/auth/app-callback` |
 | `state` | `ESTLoginManager.shared.loginURL(state:)` | 없음. ZUM 전용 state URL 매칭 흐름에서만 사용 |
 | `callbackURL` | `LoginWebView(callbackURL:)` / `LoginWebViewController(callbackURL:)` | nil. 지정 시 해당 URL로 리다이렉트되면 `code` 쿼리를 `ssoToken`으로 추출해 completion 호출 |
@@ -79,18 +79,18 @@ let config = ESTLoginConfiguration.Builder(clientId: "YOUR_CLIENT_ID")
 await ESTLoginManager.shared.initialize(with: config)
 ```
 
-#### 베이스 URL 커스터마이즈 (선택)
+#### 실행 환경 지정 (선택)
 
-개발/스테이징 환경 대응이 필요하면 `useBaseURL(_:)`로 베이스 URL을 지정할 수 있습니다. 미지정 시 기본값은 `https://estoneid.com` 입니다.
+개발/스테이징 대응이 필요하면 `useEnvironment(_:)`로 환경을 지정합니다. 미지정 시 기본값은 `.production` 입니다. 웹 host와 API host가 환경에 따라 쌍으로 자동 결정됩니다.
 
 ```swift
 let config = ESTLoginConfiguration.Builder(clientId: "YOUR_CLIENT_ID")
-    .useBaseURL("https://test.estoneid.com") // 기본값: https://estoneid.com
+    .useEnvironment(.development) // 기본값: .production
     .useKakao(KakaoConfiguration(appKey: "YOUR_KAKAO_NATIVE_APP_KEY"))
     .build()
 ```
 
-`ESTLoginManager.shared.loginURL()`과 `mypageURL`이 이 베이스 URL을 기준으로 생성됩니다.
+`ESTLoginManager.shared.loginURL()`과 `mypageURL`이 이 환경의 웹 base URL을 기준으로 생성됩니다.
 
 #### 카카오 커스텀 스킴 (개발/운영 앱 분리 시 필수)
 
@@ -99,7 +99,7 @@ let config = ESTLoginConfiguration.Builder(clientId: "YOUR_CLIENT_ID")
 ```swift
 // 개발 앱 — 커스텀 스킴으로 콜백이 개발 앱으로 돌아오도록 지정
 let config = ESTLoginConfiguration.Builder(clientId: "YOUR_CLIENT_ID")
-    .useBaseURL("https://test.estoneid.com")
+    .useEnvironment(.development)
     .useKakao(KakaoConfiguration(
         appKey: "YOUR_KAKAO_NATIVE_APP_KEY",
         customScheme: "kakao{APP_KEY}dev"  // 개발 전용 스킴

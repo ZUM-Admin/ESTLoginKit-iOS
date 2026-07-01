@@ -15,9 +15,9 @@ public struct ESTLoginConfiguration {
 
   let clientId: String
 
-  // MARK: - 베이스 URL
+  // MARK: - 환경
 
-  let baseURL: String
+  let environment: ESTEnvironment
 
   // MARK: - 카카오
 
@@ -28,14 +28,21 @@ public struct ESTLoginConfiguration {
 
   let naverConfig: NaverConfiguration?
 
+  // MARK: - 파생 URL (환경 소유)
+
+  /// 로그인/마이페이지 웹 base URL.
+  var baseURL: String { environment.webBaseURL }
+  /// 본인인증 등 REST API base URL.
+  var apiBaseURL: String { environment.apiBaseURL }
+
   private init(
     clientId: String,
-    baseURL: String,
+    environment: ESTEnvironment,
     kakaoConfig: KakaoConfiguration? = nil,
     naverConfig: NaverConfiguration? = nil
   ) {
     self.clientId = clientId
-    self.baseURL = baseURL
+    self.environment = environment
     self.kakaoConfig = kakaoConfig
     self.naverConfig = naverConfig
   }
@@ -43,7 +50,7 @@ public struct ESTLoginConfiguration {
   // 빌더 클래스
   public class Builder {
     private var clientId: String
-    private var baseURL: String = ESTLoginConfiguration.defaultBaseURL
+    private var environment: ESTEnvironment = .production
 
     private var kakaoConfig: KakaoConfiguration?
     private var naverConfig: NaverConfiguration?
@@ -52,8 +59,9 @@ public struct ESTLoginConfiguration {
       self.clientId = clientId
     }
 
-    public func useBaseURL(_ baseURL: String) -> Builder {
-      self.baseURL = baseURL
+    /// 실행 환경 선택. 웹/API base URL이 함께 결정된다. (기본: `.production`)
+    public func useEnvironment(_ environment: ESTEnvironment) -> Builder {
+      self.environment = environment
       return self
     }
 
@@ -70,12 +78,10 @@ public struct ESTLoginConfiguration {
     public func build() -> ESTLoginConfiguration {
       return ESTLoginConfiguration(
         clientId: clientId,
-        baseURL: baseURL,
+        environment: environment,
         kakaoConfig: kakaoConfig,
         naverConfig: naverConfig
       )
     }
   }
 }
-
-
