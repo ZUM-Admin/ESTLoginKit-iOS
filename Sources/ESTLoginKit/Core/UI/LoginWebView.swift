@@ -53,4 +53,8 @@ public struct LoginWebView: UIViewControllerRepresentable {
   }
 
   public func updateUIViewController(_ uiViewController: ESTOneWebViewController, context: Context) {}
+
+  public static func dismantleUIViewController(_ uiViewController: ESTOneWebViewController, coordinator: ()) {
+    uiViewController.teardown()
+  }
 }

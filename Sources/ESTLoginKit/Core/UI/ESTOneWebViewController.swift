@@ -18,9 +18,11 @@ public final class ESTOneWebViewController: UIViewController {
   private let onAccountDeleted: (() -> Void)?
   private let completion: ((String?) -> Void)?
 
-  private let webView: WKWebView
+  // teardown에서 참조를 끊어 순환을 해제하기 위해 var(IUO). Hackle 브릿지가 delegate(self)를 강참조하지만,
+  // VC가 webView 참조를 놓으면 webView가 dealloc되며 associated된 브릿지도 사라져 순환이 끊긴다.
+  private var webView: WKWebView!
   private var initialState: String?
-  
+
   private var ssoToken: String?
 
   public init(
@@ -64,7 +66,6 @@ public final class ESTOneWebViewController: UIViewController {
     webView.allowsBackForwardNavigationGestures = true
     self.webView = webView
     super.init(nibName: nil, bundle: nil)
-    ESTLog.debug("init — url: \(url)")
   }
 
   required init?(coder: NSCoder) {
@@ -79,7 +80,6 @@ public final class ESTOneWebViewController: UIViewController {
   }
 
   private func registerMessageHandlers() {
-    ESTLog.debug("registering message handlers")
     WebViewMessage.allCases.forEach { message in
       self.webView.configuration.userContentController
         .removeScriptMessageHandler(forName: message.rawValue)
@@ -87,7 +87,6 @@ public final class ESTOneWebViewController: UIViewController {
         LeakAvoider(delegate: self),
         name: message.rawValue
       )
-      ESTLog.debug("registered handler: \(message.rawValue)")
     }
   }
 
@@ -99,13 +98,24 @@ public final class ESTOneWebViewController: UIViewController {
     // delegate 다 붙은 뒤 콜백 → 호스트가 setWebViewBridge 호출하면 Hackle이 우리 delegate를 wrap
     onWebViewCreated?(self.webView)
 
-    ESTLog.debug("loading url: \(self.url)")
     self.webView.load(URLRequest(url: self.url))
   }
 
   private func setupLayout() {
     self.view.addSubview(self.webView)
     self.webView.frame = self.view.frame
+  }
+
+  /// SwiftUI 뷰 해제(dismantleUIViewController) 시 호출. 메시지 핸들러/델리게이트/로딩 정리로 누수 방지.
+  func teardown() {
+    WebViewMessage.allCases.forEach {
+      webView.configuration.userContentController.removeScriptMessageHandler(forName: $0.rawValue)
+    }
+    webView.stopLoading()
+    webView.navigationDelegate = nil
+    webView.uiDelegate = nil
+    webView.removeFromSuperview()
+    webView = nil  // VC의 강참조 해제 → webView(+associated Hackle 브릿지) dealloc → 순환 끊김
   }
   // MARK: - Google Login UA Workaround
 
@@ -153,7 +163,6 @@ extension ESTOneWebViewController: WKNavigationDelegate {
     
     if self.ssoToken == nil {
       self.ssoToken = ssoToken(navigatingURL)
-      ESTLog.debug("ssoToken: \(self.ssoToken)")
     } 
 
     // Google OAuth URL → Android UA로 교체 후 cancel→reload.
@@ -223,7 +232,6 @@ extension ESTOneWebViewController: WKScriptMessageHandler {
     _ userContentController: WKUserContentController,
     didReceive message: WKScriptMessage
   ) {
-    ESTLog.debug("message received — name: \(message.name), body: \(message.body)")
 
     guard let action = WebViewMessage(rawValue: message.name) else {
       ESTLog.debug("unknown message — name: \(message.name)")
@@ -242,17 +250,8 @@ extension ESTOneWebViewController: WKScriptMessageHandler {
       handleAction(action, payload: dto)
 
     case .onLoginComplete:
-      // 관찰 전용 — 어떤 payload가 내려오는지 로그로만 확인 (dismiss/redirect 미구현)
-      ESTLog.debug("onLoginComplete — bodyType: \(type(of: message.body)), raw: \(message.body)")
-      if let body = message.body as? String,
-         let data = body.data(using: .utf8),
-         let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-        ESTLog.debug("onLoginComplete — parsed(String→JSON): code=\(dict["code"] ?? "nil"), state=\(dict["state"] ?? "nil")")
-      } else if let dict = message.body as? [String: Any] {
-        ESTLog.debug("onLoginComplete — parsed(dict): code=\(dict["code"] ?? "nil"), state=\(dict["state"] ?? "nil")")
-      } else {
-        ESTLog.debug("onLoginComplete — payload not JSON/dict")
-      }
+      // 관찰 전용 — 현재 별도 처리 없음 (dismiss/redirect 미구현)
+      break
 
     case .onPasswordChanged:
       // 비밀번호 변경 통지 → 호스트가 silent 모드로 토큰 재발급 (§7)
@@ -285,7 +284,7 @@ extension ESTOneWebViewController: WKScriptMessageHandler {
       Task {
         do {
           let result = try await ESTLoginManager.shared.login(with: platform)
-          ESTLog.info("login success — provider: \(loginDTO.provider.rawValue), token: \(result.authorizeToken.prefix(20))...")
+          ESTLog.info("login success — provider: \(loginDTO.provider.rawValue)")
           sendSuccessResult(
             SNSLoginSuccessPayload(
               provider: loginDTO.provider.rawValue,
@@ -317,15 +316,14 @@ extension ESTOneWebViewController: WKScriptMessageHandler {
   @MainActor
   private func sendSuccessResult(_ payload: SNSLoginSuccessPayload) {
     guard let json = payload.jsonString else { return }
-    ESTLog.debug("sendSuccessResult — \(json)")
-    webView.evaluateJavaScript("window.onNativeSnsLoginResult(\(json))")
+    webView?.evaluateJavaScript("window.onNativeSnsLoginResult(\(json))")
   }
 
   @MainActor
   private func sendErrorResult(_ payload: SNSLoginErrorPayload) {
     guard let json = payload.jsonString else { return }
     ESTLog.error("sendErrorResult — \(json)")
-    webView.evaluateJavaScript("window.onNativeSnsLoginError(\(json))")
+    webView?.evaluateJavaScript("window.onNativeSnsLoginError(\(json))")
   }
 }
 

@@ -36,14 +36,9 @@ extension ESTLoginManager {
     request.httpMethod = "GET"
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    ESTLog.debug("verificationStatus → GET \(url.absoluteString)")
-
     let (data, response) = try await URLSession.shared.data(for: request)
 
     let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
-    let bodyString = String(data: data, encoding: .utf8) ?? ""
-    ESTLog.debug("verificationStatus ← \(statusCode): \(bodyString)")
-
     if !(200..<300).contains(statusCode) {
       throw AuthError.server(statusCode: statusCode)
     }
