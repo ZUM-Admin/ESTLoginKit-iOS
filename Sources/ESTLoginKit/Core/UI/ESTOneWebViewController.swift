@@ -160,10 +160,13 @@ extension ESTOneWebViewController: WKNavigationDelegate {
       return
     }
     ESTLog.debug("navigation: \(navigatingURL.absoluteString)")
-    
-    if self.ssoToken == nil {
-      self.ssoToken = ssoToken(navigatingURL)
-    } 
+
+    // 항상 최신 code로 갱신한다. 첫 code 고정 시, 리다이렉트가 중간에 취소되고
+    // 재시도 체인이 새 code를 발급받으면(estoneid는 재발급 시 이전 code 무효화)
+    // completion에 무효화된 구 code가 전달되어 토큰 발급이 실패한다.
+    if let code = ssoToken(navigatingURL) {
+      self.ssoToken = code
+    }
 
     // Google OAuth URL → Android UA로 교체 후 cancel→reload.
     // (현재 navigation에는 UA 변경이 적용되지 않으므로 reload 필수.
