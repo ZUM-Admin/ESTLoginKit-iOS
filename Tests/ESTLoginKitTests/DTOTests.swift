@@ -69,8 +69,8 @@ struct SNSLoginSuccessPayloadTests {
         #expect(payload.email == "user@example.com")
     }
 
-    @Test("jsonString에 모든 필드 포함")
-    func jsonStringContainsAllFields() {
+    @Test("email이 빈 값이면 jsonString에서 email 키 생략")
+    func jsonStringOmitsBlankEmail() {
         let payload = SNSLoginSuccessPayload(
             provider: "google",
             authorizeToken: "token_123",
@@ -85,7 +85,35 @@ struct SNSLoginSuccessPayloadTests {
         #expect(json.contains("\"token_123\""))
         #expect(json.contains("\"refreshToken\""))
         #expect(json.contains("\"ci\""))
+        // email은 값이 있을 때만 포함 — 빈 값이면 키 자체를 생략
+        #expect(!json.contains("\"email\""))
+    }
+
+    @Test("공백만 있는 email은 nil 취급하여 키 생략")
+    func jsonStringOmitsWhitespaceEmail() {
+        let payload = SNSLoginSuccessPayload(
+            provider: "kakao",
+            authorizeToken: "token_123",
+            refreshToken: "",
+            ci: "",
+            email: "   "
+        )
+        #expect(payload.email == nil)
+        #expect(!(payload.jsonString ?? "").contains("\"email\""))
+    }
+
+    @Test("email이 있으면 jsonString에 email 키 포함")
+    func jsonStringIncludesNonBlankEmail() {
+        let payload = SNSLoginSuccessPayload(
+            provider: "naver",
+            authorizeToken: "token_123",
+            refreshToken: "",
+            ci: "",
+            email: "user@example.com"
+        )
+        let json = payload.jsonString ?? ""
         #expect(json.contains("\"email\""))
+        #expect(json.contains("user@example.com"))
     }
 
     @Test("유효한 JSON 생성")

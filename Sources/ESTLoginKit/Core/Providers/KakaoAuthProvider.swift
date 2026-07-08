@@ -16,42 +16,59 @@ final class KakaoAuthProvider: AuthProvider {
   @MainActor
   func login() async throws -> AuthResult {
     // 1. 카카오톡 실행 가능 여부 확인
+    let tokens: (access: String, refresh: String)
     if UserApi.isKakaoTalkLoginAvailable() {
-      return try await loginWithKakaoTalk()
+      tokens = try await loginWithKakaoTalk()
     } else {
       // 2. 카카오톡 미설치 시 웹 브라우저로 로그인
-      return try await loginWithKakaoAccount()
+      tokens = try await loginWithKakaoAccount()
     }
+
+    // 3. 토큰 획득 성공 직후, 콜백 발화 전에 프로필 API 1회 호출해 email 조회.
+    //    조회 실패/미동의/빈 값이면 email 없이 진행 (로그인 실패로 만들지 않음).
+    let email = await fetchEmail()
+
+    return AuthResult(
+      authorizeToken: tokens.access,
+      refreshToken: tokens.refresh,
+      email: email
+    )
   }
 
   @MainActor
-  private func loginWithKakaoTalk() async throws -> AuthResult {
+  private func loginWithKakaoTalk() async throws -> (access: String, refresh: String) {
     return try await withCheckedThrowingContinuation { continuation in
       UserApi.shared.loginWithKakaoTalk { (oauthToken, error) in
         if let error = error {
           continuation.resume(throwing: Self.mapError(error))
         } else if let token = oauthToken {
-          continuation.resume(returning: AuthResult(
-            authorizeToken: token.accessToken,
-            refreshToken: token.refreshToken
-          ))
+          continuation.resume(returning: (token.accessToken, token.refreshToken))
         }
       }
     }
   }
 
   @MainActor
-  private func loginWithKakaoAccount() async throws -> AuthResult {
+  private func loginWithKakaoAccount() async throws -> (access: String, refresh: String) {
     return try await withCheckedThrowingContinuation { continuation in
       UserApi.shared.loginWithKakaoAccount { (oauthToken, error) in
         if let error = error {
           continuation.resume(throwing: Self.mapError(error))
         } else if let token = oauthToken {
-          continuation.resume(returning: AuthResult(
-            authorizeToken: token.accessToken,
-            refreshToken: token.refreshToken
-          ))
+          continuation.resume(returning: (token.accessToken, token.refreshToken))
         }
+      }
+    }
+  }
+
+  /// 카카오 계정에서 email 조회. 실패/미동의/빈 값이면 "" 반환 (절대 throw하지 않음).
+  /// 참고: Kakao Developers 콘솔에서 account_email 동의항목이 활성화되어 있어야 하며,
+  /// 사용자가 동의를 거부하면 nil이 내려온다.
+  @MainActor
+  private func fetchEmail() async -> String {
+    return await withCheckedContinuation { continuation in
+      UserApi.shared.me { (user, _) in
+        continuation.resume(returning: user?.kakaoAccount?.email ?? "")
       }
     }
   }
