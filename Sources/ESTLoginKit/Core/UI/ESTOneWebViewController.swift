@@ -43,7 +43,9 @@ public final class ESTOneWebViewController: UIViewController {
     self.onPasswordChanged = onPasswordChanged
     self.onAccountDeleted = onAccountDeleted
     self.completion = completion
-    self.initialState = url.queryValue(for: "state")
+    // 빈 state("?state=")를 허용하면 hasPrefix("")가 항상 true가 되어
+    // 첫 네비게이션에서 곧바로 completion이 호출된다.
+    self.initialState = url.nonEmptyQueryValue(for: "state")
 
     let config = WKWebViewConfiguration()
     config.websiteDataStore = WKWebsiteDataStore.default()
@@ -142,7 +144,7 @@ public final class ESTOneWebViewController: UIViewController {
   }
   
   private func ssoToken(_ url: URL) -> String? {
-    return url.queryValue(for: "code")
+    return url.nonEmptyQueryValue(for: "code")
   }
 }
 
