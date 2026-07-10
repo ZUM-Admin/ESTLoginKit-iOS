@@ -16,6 +16,7 @@ public final class ESTOneWebViewController: UIViewController {
   private let onWebViewCreated: ((WKWebView) -> Void)?
   private let onPasswordChanged: (() -> Void)?
   private let onAccountDeleted: (() -> Void)?
+  private let onVerificationResult: ((Result<VerificationResult, AuthError>) -> Void)?
   private let completion: ((String?) -> Void)?
 
   // teardown에서 참조를 끊어 순환을 해제하기 위해 var(IUO). Hackle 브릿지가 delegate(self)를 강참조하지만,
@@ -25,6 +26,10 @@ public final class ESTOneWebViewController: UIViewController {
 
   private var ssoToken: String?
 
+  // 웹은 브릿지 → (실패 시) callbackURL 순으로 완료를 통지한다. 브릿지가 등록된 상태에서
+  // 웹이 리다이렉트까지 수행해도 호스트가 결과를 두 번 받지 않도록 첫 전달만 통과시킨다.
+  private var hasDeliveredVerificationResult = false
+
   public init(
     url: URL,
     callbackURL: String? = nil,
@@ -33,6 +38,7 @@ public final class ESTOneWebViewController: UIViewController {
     onWebViewCreated: ((WKWebView) -> Void)? = nil,
     onPasswordChanged: (() -> Void)? = nil,
     onAccountDeleted: (() -> Void)? = nil,
+    onVerificationResult: ((Result<VerificationResult, AuthError>) -> Void)? = nil,
     completion: ((String?) -> Void)? = nil
   ) {
     self.url = url
@@ -42,6 +48,7 @@ public final class ESTOneWebViewController: UIViewController {
     self.onWebViewCreated = onWebViewCreated
     self.onPasswordChanged = onPasswordChanged
     self.onAccountDeleted = onAccountDeleted
+    self.onVerificationResult = onVerificationResult
     self.completion = completion
     // 빈 state("?state=")를 허용하면 hasPrefix("")가 항상 true가 되어
     // 첫 네비게이션에서 곧바로 completion이 호출된다.
@@ -146,6 +153,18 @@ public final class ESTOneWebViewController: UIViewController {
   private func ssoToken(_ url: URL) -> String? {
     return url.nonEmptyQueryValue(for: "code")
   }
+
+  // MARK: - Identity Verification
+
+  /// 본인인증 완료 통지를 호스트에 1회만 전달한다. (브릿지/callbackURL 중 먼저 도착한 쪽)
+  private func deliverVerificationResult(status: String?, token: String?) {
+    guard !hasDeliveredVerificationResult else {
+      ESTLog.debug("verification result already delivered — ignoring")
+      return
+    }
+    hasDeliveredVerificationResult = true
+    onVerificationResult?(VerificationCompleteStatus.result(status: status, token: token))
+  }
 }
 
 
@@ -184,8 +203,19 @@ extension ESTOneWebViewController: WKNavigationDelegate {
     // callback URL → ssoToken 추출 후 콜백 전달
     if let callbackURL,
        navigatingURL.absoluteString.hasPrefix(callbackURL) {
-      ESTLog.debug("callback with ssoToken — completing")
       decisionHandler(.cancel)
+
+      // 본인인증 화면은 브릿지 미등록 시에만 여기로 리다이렉트된다(?status=...&code=<ssoToken>).
+      if onVerificationResult != nil {
+        ESTLog.debug("verification callback — completing")
+        deliverVerificationResult(
+          status: navigatingURL.nonEmptyQueryValue(for: "status"),
+          token: self.ssoToken
+        )
+        return
+      }
+
+      ESTLog.debug("callback with ssoToken — completing")
       completion?(self.ssoToken)
       return
     }
@@ -267,12 +297,25 @@ extension ESTOneWebViewController: WKScriptMessageHandler {
       // 회원 탈퇴 통지 → 호스트가 로그아웃 처리 (§7)
       ESTLog.debug("onAccountDeleted")
       onAccountDeleted?()
+
+    case .onVerificationComplete:
+      guard let body = message.body as? String,
+            let data = body.data(using: .utf8),
+            let dto = action.decode(from: data) as? VerificationCompletePayload
+      else {
+        // 파싱 실패 시에도 결과를 흘려보내야 호스트의 화면이 열린 채로 남지 않는다.
+        ESTLog.error("message parse failed — name: \(message.name)")
+        deliverVerificationResult(status: nil, token: nil)
+        return
+      }
+      ESTLog.debug("onVerificationComplete — status: \(dto.status)")
+      deliverVerificationResult(status: dto.status, token: dto.token)
     }
   }
 
   private func handleAction(_ action: WebViewMessage, payload: Decodable) {
     switch action {
-    case .onLoginComplete, .onPasswordChanged, .onAccountDeleted:
+    case .onLoginComplete, .onPasswordChanged, .onAccountDeleted, .onVerificationComplete:
       // userContentController에서 직접 처리됨
       break
 
