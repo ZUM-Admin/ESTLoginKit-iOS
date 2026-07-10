@@ -157,7 +157,8 @@ try await ESTLoginManager.shared.logout()
 
 본인인증은 로그인/회원가입과 **완전히 분리**되어 있습니다. 앱은 (1) 인증 여부를 조회하고, (2) 필요할 때 본인인증 화면을 직접 띄웁니다.
 
-> **`(미정)` 표기**: 본인인증 **화면**(화면 URL / 완료 콜백 방식 / 결과 필드)의 백엔드 스펙이 아직 확정되지 않은 부분입니다. 스펙 확정 후 시그니처가 바뀔 수 있습니다. **상태 조회 API(`verificationStatus`)는 확정**되었습니다. (확정된 설계 원칙·구현된 기능에는 표기하지 않음)
+> 상태 조회 API와 본인인증 화면(화면 URL / 완료 통지 방식 / 결과 필드) 스펙은 모두 확정·구현되었습니다.
+> 다만 `VerificationResult`에 `ci`/`di` 등 추가 필드를 넣을지는 아직 정해지지 않았습니다.
 
 ### 1. 인증 여부 조회 — `verificationStatus`
 
@@ -193,14 +194,17 @@ extension ESTLoginManager {
 
 ```swift
 public struct VerificationResult {
-    public let token: String       // 본인인증 결과 토큰 (ci/di 등 추가 필드는 미정)
+    public let token: String       // 본인인증 후 재발급된 ssoToken
 }
 
-// SwiftUI — url 기본값은 verificationURL() (verificationURL 빌더 스펙은 미정)
+// SwiftUI — url 생략 시 verificationURL(callbackURL:)이 사용됩니다.
 public struct IdentityVerificationView: UIViewControllerRepresentable {
     public init(
-        url: URL = ESTLoginManager.shared.verificationURL(),   // (미정)
-        callbackURL: String? = nil,                            // 완료 콜백 방식(jsBridge/URL) (미정)
+        url: URL? = nil,
+        callbackURL: String? = nil,   // 브릿지 미등록 시 리다이렉트될 앱 콜백 URL (선택)
+        externalUserAgent: String? = nil,
+        inspectable: Bool = false,
+        onWebViewCreated: ((WKWebView) -> Void)? = nil,
         onResult: @escaping (Result<VerificationResult, AuthError>) -> Void
     )
 }
@@ -208,14 +212,42 @@ public struct IdentityVerificationView: UIViewControllerRepresentable {
 // UIKit
 public final class IdentityVerificationViewController: UIViewController {
     public init(
-        url: URL = ESTLoginManager.shared.verificationURL(),   // (미정)
-        callbackURL: String? = nil,                            // 완료 콜백 방식(jsBridge/URL) (미정)
+        url: URL? = nil,
+        callbackURL: String? = nil,
+        externalUserAgent: String? = nil,
+        inspectable: Bool = false,
+        onWebViewCreated: ((WKWebView) -> Void)? = nil,
         onResult: @escaping (Result<VerificationResult, AuthError>) -> Void
     )
 }
 ```
 
-> 본인인증 **화면 URL(`verificationURL()`)과 완료 콜백 회수 방식(jsBridge `onLoginComplete` 류 vs 콜백 URL `code` 가로채기)** 은 아직 (미정)입니다. 스펙 확정 시 `verificationURL(...)` 파라미터와 콜백 처리 로직이 정해집니다.
+화면 URL은 `ESTLoginManager.shared.verificationURL(callbackURL:)`로 생성됩니다.
+
+```
+{webBaseURL}/webview/verification?callbackURL=<앱 콜백 URL, URL인코딩>
+```
+
+로그인 세션 쿠키(`WKWebsiteDataStore.default()`)를 공유하므로 임시 회원 세션이 그대로 전달되며,
+인증 회원 승격과 CI 충돌 해소는 웹뷰가 자체 처리합니다.
+
+**완료 통지는 ① 브릿지 → ② (브릿지 미등록 시) `callbackURL` 리다이렉트 순으로 실행되며, SDK가 둘 다 처리합니다.**
+호스트는 `onResult`만 구현하면 되고, 두 경로가 모두 도착해도 결과는 **한 번만** 전달됩니다.
+
+| 경로 | 형태 |
+|------|------|
+| 브릿지 | `window.webkit.messageHandlers.onVerificationComplete.postMessage(jsonString)` — 로그인용 `onLoginComplete`와 분리된 별도 메서드 |
+| 페이로드 | `{ "status": "certified" \| "cancelled" \| "error", "token": "<ssoToken, certified일 때만>" }` |
+| callbackURL | `<callbackURL>?status=certified\|cancelled\|error&code=<ssoToken>` |
+
+| `status` | 의미 | `onResult` |
+|----------|------|------------|
+| `certified` | 승격 완료 (CI 충돌 시 계정 병합까지 완료) | `.success(VerificationResult)` |
+| `cancelled` | 사용자가 본인인증 취소/중단 | `.failure(.cancelled)` |
+| `error` | 승격 실패, 병합 실패, cert 조회 실패 등 | `.failure(.verificationFailed)` |
+
+> ⚠️ **CI 충돌로 계정이 병합되면 웹뷰 안의 세션이 다른 계정으로 바뀌어 있을 수 있습니다.**
+> `certified` 수신 시 호스트는 전달받은 `token`(ssoToken)으로 **세션을 재수립**해야 병합된 계정과 상태가 맞습니다.
 
 ### 3. 전체 흐름 — "필요한 시점에 본인인증"
 
@@ -283,23 +315,26 @@ func gateVerification() async {
 | 인증 화면 제공 | `IdentityVerificationView` / `IdentityVerificationViewController` (SDK) |
 | 화면 띄우기/닫기 | **호스트** (sheet/cover/present, dismiss도 호스트) |
 | 토큰 | **호스트가 주입** (SDK 미보관) |
+| 완료 통지 수신 | **SDK** (브릿지 + callbackURL 둘 다 처리, 결과는 1회만 전달) |
 | 결과 | `Result<VerificationResult, AuthError>` |
+| `certified` 후속 처리 | **호스트** (재발급된 ssoToken으로 세션 재수립) |
 
 ## 에러 처리
 
 ```swift
 public enum AuthError: Error {
     case unsupportedPlatform
-    case cancelled        // 사용자 취소
-    case network          // 네트워크/서버 오류 (verificationStatus 등)
-    case unauthorized     // accessToken 만료/무효 — 토큰 갱신 후 재시도 필요
+    case cancelled                   // 사용자 취소
+    case notInitialized              // initialize(with:) 미호출
+    case verificationFailed          // 본인인증 승격/병합 실패, 또는 완료 통지 해석 불가
+    case server(statusCode: Int)     // 2xx가 아닌 응답
     case unknown(Error?)
 }
 ```
 
 - 네이티브 로그인(`login(with:)`)은 실패 시 각 provider SDK의 원본 에러를 전달합니다.
-- `verificationStatus(...)`는 네트워크 오류 시 `.network`, 토큰 무효 시 `.unauthorized`를 던집니다. `.unauthorized`면 accessToken 갱신 후 재시도하세요.
-- 본인인증 화면(`onResult`)은 사용자 취소 시 `.failure(.cancelled)`로 전달됩니다.
+- `verificationStatus(...)`는 초기화 전 호출 시 `.notInitialized`, 2xx가 아닌 응답에 `.server(statusCode:)`를 던집니다. accessToken이 만료/무효면 `.server(statusCode: 401)`이므로 토큰 갱신 후 재시도하세요. 네트워크 오류는 `URLSession`의 원본 에러가 그대로 전파됩니다.
+- 본인인증 화면(`onResult`)은 사용자 취소 시 `.failure(.cancelled)`, 승격/병합 실패 시 `.failure(.verificationFailed)`로 전달됩니다.
 
 ## 레퍼런스
 - [Kakao developers](https://developers.kakao.com/docs/latest/ko/ios/getting-started#project)
