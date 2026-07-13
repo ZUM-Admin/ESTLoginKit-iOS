@@ -264,7 +264,7 @@ struct CheckoutButton: View {
             Task { await gateVerification() }
         }
         .sheet(isPresented: $showVerification) {
-            IdentityVerificationView { result in        // url 생략 = verificationURL()
+            IdentityVerificationView { result in        // url·callbackURL 생략 = 브릿지로 결과 수신
                 showVerification = false
                 switch result {
                 case .success(let v): proceedCheckout(verificationToken: v.token)
@@ -305,6 +305,16 @@ func gateVerification() async {
     present(UINavigationController(rootViewController: vc), animated: true)
 }
 ```
+
+> 웹 브릿지(`onVerificationComplete`)를 우선 사용하므로 위 예시들처럼 `callbackURL`을 생략해도 결과가 전달됩니다.
+> 브릿지가 없는 웹 환경을 대비해 콜백 URL 방식을 함께 쓰려면 `callbackURL`만 넘기면 됩니다. **처리 코드는 동일하며**,
+> SDK가 `<callbackURL>?status=...&code=<ssoToken>` 리다이렉트를 가로채 같은 `onResult`로 전달합니다.
+>
+> ```swift
+> IdentityVerificationView(callbackURL: "https://estoneid.com/auth/app-callback") { result in
+>     // 브릿지로 오든 callbackURL로 오든 결과 처리는 동일
+> }
+> ```
 
 ### 4. 동작 정리
 
