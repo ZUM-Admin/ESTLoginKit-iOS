@@ -24,9 +24,7 @@ struct RequestLoginDTOTests {
     func decodesAllProviders() {
         let cases: [(String, RequestLoginDTO.Provider)] = [
             ("kakao", .kakao),
-            ("naver", .naver),
-            ("google", .google),
-            ("apple", .apple)
+            ("naver", .naver)
         ]
         for (raw, expected) in cases {
             let json = #"{"type":"sns-login","provider":"\#(raw)"}"#

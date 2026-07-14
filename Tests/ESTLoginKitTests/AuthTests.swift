@@ -9,19 +9,19 @@ struct MockAuthProviderTests {
 
     private struct MockSuccessProvider: AuthProvider {
         let token: String
-        func login() async throws -> String { token }
+        func login() async throws -> AuthResult { AuthResult(authorizeToken: token) }
     }
 
     private struct MockFailureProvider: AuthProvider {
         let error: Error
-        func login() async throws -> String { throw error }
+        func login() async throws -> AuthResult { throw error }
     }
 
     @Test("성공 시 토큰 반환")
     func successReturnsToken() async throws {
         let provider = MockSuccessProvider(token: "mock_token_123")
         let result = try await provider.login()
-        #expect(result == "mock_token_123")
+        #expect(result.authorizeToken == "mock_token_123")
     }
 
     @Test("실패 시 에러 throw")
