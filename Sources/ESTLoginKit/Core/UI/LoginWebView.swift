@@ -21,7 +21,7 @@ public struct LoginWebView: UIViewControllerRepresentable {
 
   public init(
     url: URL = ESTLoginManager.shared.loginURL(),
-    callbackURL: String? = nil,
+    callbackURL: String? = ESTLoginManager.shared.appCallbackURL,
     externalUserAgent: String? = nil,
     inspectable: Bool = false,
     onWebViewCreated: ((WKWebView) -> Void)? = nil,

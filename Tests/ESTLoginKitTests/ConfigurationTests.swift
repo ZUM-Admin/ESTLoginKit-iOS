@@ -9,16 +9,17 @@ struct ESTLoginConfigurationBuilderTests {
 
     @Test("기본 빌더 - 모든 설정이 비활성화")
     func defaultBuilder() {
-        let config = ESTLoginConfiguration.Builder().build()
+        let config = ESTLoginConfiguration.Builder(clientId: "test_client").build()
 
         #expect(config.kakaoConfig == nil)
         #expect(config.naverConfig == nil)
+        #expect(config.clientId == "test_client")
     }
 
     @Test("카카오 설정 추가")
     func useKakao() {
         let kakaoConfig = KakaoConfiguration(appKey: "test_kakao_key")
-        let config = ESTLoginConfiguration.Builder()
+        let config = ESTLoginConfiguration.Builder(clientId: "test_client")
             .useKakao(kakaoConfig)
             .build()
 
@@ -27,7 +28,7 @@ struct ESTLoginConfigurationBuilderTests {
 
     @Test("카카오 설정 nil 제거")
     func useKakaoNil() {
-        let config = ESTLoginConfiguration.Builder()
+        let config = ESTLoginConfiguration.Builder(clientId: "test_client")
             .useKakao(nil)
             .build()
 
@@ -42,7 +43,7 @@ struct ESTLoginConfigurationBuilderTests {
             clientSecret: "client_secret",
             urlScheme: "navertestapp"
         )
-        let config = ESTLoginConfiguration.Builder()
+        let config = ESTLoginConfiguration.Builder(clientId: "test_client")
             .useNaver(naverConfig)
             .build()
 
@@ -54,7 +55,7 @@ struct ESTLoginConfigurationBuilderTests {
 
     @Test("모든 설정 체이닝")
     func buildWithAllOptions() {
-        let config = ESTLoginConfiguration.Builder()
+        let config = ESTLoginConfiguration.Builder(clientId: "test_client")
             .useKakao(KakaoConfiguration(appKey: "kakao_key"))
             .useNaver(NaverConfiguration(
                 appName: "App",
@@ -70,9 +71,37 @@ struct ESTLoginConfigurationBuilderTests {
 
     @Test("빌더 반환 타입 확인 - 체이닝 가능")
     func builderReturnsBuilder() {
-        let builder = ESTLoginConfiguration.Builder()
+        let builder = ESTLoginConfiguration.Builder(clientId: "test_client")
         let returnedBuilder = builder.useKakao(nil)
         #expect(returnedBuilder === builder)
+    }
+}
+
+// MARK: - ESTEnvironment
+
+@Suite("ESTEnvironment")
+struct ESTEnvironmentTests {
+
+    @Test("환경별 웹/API base URL", arguments: [
+        (ESTEnvironment.production, "https://estoneid.com", "https://api.estoneid.com"),
+        (ESTEnvironment.development, "https://dev.estoneid.com", "https://dev-api.estoneid.com"),
+        (ESTEnvironment.test, "https://test.estoneid.com", "https://test-api.estoneid.com"),
+    ])
+    func environmentURLs(environment: ESTEnvironment, web: String, api: String) {
+        let config = ESTLoginConfiguration.Builder(clientId: "test_client")
+            .useEnvironment(environment)
+            .build()
+
+        #expect(config.baseURL == web)
+        #expect(config.apiBaseURL == api)
+    }
+
+    @Test("기본 환경은 production")
+    func defaultEnvironmentIsProduction() {
+        let config = ESTLoginConfiguration.Builder(clientId: "test_client").build()
+
+        #expect(config.baseURL == "https://estoneid.com")
+        #expect(config.apiBaseURL == "https://api.estoneid.com")
     }
 }
 

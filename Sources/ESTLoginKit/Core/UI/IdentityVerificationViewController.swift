@@ -25,11 +25,11 @@ public final class IdentityVerificationViewController: UIViewController {
 
   /// - Parameters:
   ///   - url: 기본값은 `verificationURL(callbackURL:)`. 직접 넘기면 `callbackURL` 조합을 대체합니다.
-  ///   - callbackURL: 브릿지 미등록 시 리다이렉트될 앱 콜백 URL. 브릿지가 우선이므로 생략해도 동작합니다.
+  ///   - callbackURL: 브릿지 미등록 시 리다이렉트될 앱 콜백 URL. 기본값은 `appCallbackURL`.
   ///   - onResult: 사용자 취소 시 `.failure(.cancelled)`, 승격/병합 실패 시 `.failure(.verificationFailed)`.
   public init(
     url: URL? = nil,
-    callbackURL: String? = nil,
+    callbackURL: String? = ESTLoginManager.shared.appCallbackURL,
     externalUserAgent: String? = nil,
     inspectable: Bool = false,
     onWebViewCreated: ((WKWebView) -> Void)? = nil,

@@ -55,10 +55,10 @@ SDK 통합 시 앱에서 직접 주입해야 하는 값 목록입니다. 값이 
 
 | 항목 | 주입 위치 | 기본값 / 설명 |
 |------|----------|-------------|
-| `environment` | `Builder.useEnvironment(_:)` | `.production`(기본) / `.development`. 웹·API host가 환경별로 함께 결정됨 |
+| `environment` | `Builder.useEnvironment(_:)` | `.production`(기본) / `.development` / `.test`. 웹·API host가 환경별로 함께 결정됨 |
 | `redirectURL` | `ESTLoginManager.shared.loginURL(redirectURL:)` | `{baseURL}/auth/app-callback` |
 | `state` | `ESTLoginManager.shared.loginURL(state:)` | 없음. ZUM 전용 state URL 매칭 흐름에서만 사용 |
-| `callbackURL` | `LoginWebView(callbackURL:)` / `LoginWebViewController(callbackURL:)` | nil. 지정 시 해당 URL로 리다이렉트되면 `code` 쿼리를 `ssoToken`으로 추출해 completion 호출 |
+| `callbackURL` | `LoginWebView(callbackURL:)` / `LoginWebViewController(callbackURL:)` | `{baseURL}/auth/app-callback`(기본). 해당 URL로 리다이렉트되면 `code` 쿼리를 `ssoToken`으로 추출해 completion 호출. `nil` 명시 시 감지 비활성화 |
 | `externalUserAgent` | `LoginWebView(externalUserAgent:)` | nil. 커스텀 User-Agent가 필요한 경우 지정 |
 | `inspectable` | `LoginWebView(inspectable:)` | `false`. Safari Web Inspector 활성화 (iOS 16.4+) |
 
@@ -82,6 +82,12 @@ await ESTLoginManager.shared.initialize(with: config)
 #### 실행 환경 지정 (선택)
 
 개발/스테이징 대응이 필요하면 `useEnvironment(_:)`로 환경을 지정합니다. 미지정 시 기본값은 `.production` 입니다. 웹 host와 API host가 환경에 따라 쌍으로 자동 결정됩니다.
+
+| 환경 | 웹 host | API host |
+|------|---------|----------|
+| `.production` (기본) | estoneid.com | api.estoneid.com |
+| `.development` | dev.estoneid.com | dev-api.estoneid.com |
+| `.test` | test.estoneid.com | test-api.estoneid.com |
 
 ```swift
 let config = ESTLoginConfiguration.Builder(clientId: "YOUR_CLIENT_ID")
@@ -259,15 +265,15 @@ https://estoneid.com/user/login
 
 ### 콜백 흐름
 
-1. **SSO 콜백**: `callbackURL` 파라미터로 지정한 URL로 리다이렉트되면 쿼리의 `code` 값을 `ssoToken`으로 추출하여 `completion(ssoToken)`을 호출합니다. `callbackURL`이 `nil`이면 이 감지는 비활성화됩니다.
+1. **SSO 콜백**: `callbackURL`로 리다이렉트되면 쿼리의 `code` 값을 `ssoToken`으로 추출하여 `completion(ssoToken)`을 호출합니다. 기본값은 `ESTLoginManager.shared.appCallbackURL`(`{baseURL}/auth/app-callback`)이며, `nil`을 명시하면 이 감지는 비활성화됩니다.
 2. **state URL 매칭 (ZUM 전용)**: 초기 URL의 `state` 쿼리 파라미터와 동일한 URL로 이동하면 `completion(nil)`을 호출합니다. 이 방식은 ZUM 서비스 전용이며, 일반적인 경우 SSO 콜백 방식을 사용하세요.
 
 `LoginWebView` / `LoginWebViewController`는 다음 시그니처를 가집니다.
 
 ```swift
 LoginWebView(
-    url: URL,
-    callbackURL: String? = nil,   // 예: "https://estoneid.com/auth/app-callback"
+    url: URL = ESTLoginManager.shared.loginURL(),
+    callbackURL: String? = ESTLoginManager.shared.appCallbackURL,  // "{baseURL}/auth/app-callback"
     externalUserAgent: String? = nil,
     inspectable: Bool = false,
     completion: ((String?) -> Void)? = nil

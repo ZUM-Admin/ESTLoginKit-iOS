@@ -91,11 +91,17 @@ struct VerificationCompletePayloadTests {
 @Suite("verificationURL")
 struct VerificationURLTests {
 
-    @Test("callbackURL 없으면 쿼리 없음")
+    init() {
+        // verificationURL은 clientId가 필수 — initialize된 상태를 재현
+        ESTLoginManager.configuration = ESTLoginConfiguration.Builder(clientId: "test_client").build()
+    }
+
+    @Test("client_id는 항상 쿼리에 포함")
     func urlWithoutCallback() {
         let url = ESTLoginManager.shared.verificationURL()
         #expect(url.path == "/webview/verification")
-        #expect(url.query == nil)
+        #expect(url.queryValue(for: "client_id") == "test_client")
+        #expect(url.queryValue(for: "callbackURL") == nil)
     }
 
     @Test("callbackURL은 인코딩되어 쿼리로 붙는다")
@@ -103,6 +109,7 @@ struct VerificationURLTests {
         let callback = "https://app.example.com/cb?a=1&b=2"
         let url = ESTLoginManager.shared.verificationURL(callbackURL: callback)
         // 인코딩이 깨지면 callbackURL의 &b=2가 최상위 쿼리로 새어나온다.
+        #expect(url.queryValue(for: "client_id") == "test_client")
         #expect(url.queryValue(for: "callbackURL") == callback)
         #expect(url.queryValue(for: "b") == nil)
     }

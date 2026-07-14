@@ -111,6 +111,12 @@ public final actor ESTLoginManager {
     URL(string: "\(Self.baseURL)/mypage/setting")!
   }
 
+  /// 앱 콜백 기본 URL. `loginURL()`의 redirect_url 기본값이자,
+  /// `LoginWebView`/`IdentityVerificationView` 등의 `callbackURL` 기본값으로 사용된다.
+  public nonisolated var appCallbackURL: String {
+    "\(Self.baseURL)/auth/app-callback"
+  }
+
   /// 로그인 URL을 생성합니다.
   /// - Parameter silent: `true`이면 `silent=true`를 추가해 AccountSwitcher를 건너뛰고
   ///   세션 쿠키가 유효할 때 ssoToken을 자동 발급받습니다. (비밀번호 변경 후 토큰 재발급용, §7.2)
@@ -119,7 +125,7 @@ public final actor ESTLoginManager {
       fatalError("[ESTLoginKit] loginURL requires initialize() to be called first")
     }
     let base = Self.baseURL
-    let actualRedirectURL = redirectURL ?? "\(base)/auth/app-callback"
+    let actualRedirectURL = redirectURL ?? appCallbackURL
     var components = URLComponents(string: "\(base)/user/login")!
     var items = [
       URLQueryItem(name: "type", value: "callback"),
@@ -144,10 +150,15 @@ public final actor ESTLoginManager {
   ///
   /// - Parameter callbackURL: 브릿지 미등록 시 리다이렉트될 앱 콜백 URL. (선택)
   public nonisolated func verificationURL(callbackURL: String? = nil) -> URL {
-    var components = URLComponents(string: "\(Self.baseURL)/webview/verification")!
-    if let callbackURL {
-      components.queryItems = [URLQueryItem(name: "callbackURL", value: callbackURL)]
+    guard let clientId = Self.configuration?.clientId else {
+      fatalError("[ESTLoginKit] verificationURL requires initialize() to be called first")
     }
+    var components = URLComponents(string: "\(Self.baseURL)/webview/verification")!
+    var items = [URLQueryItem(name: "client_id", value: clientId)]
+    if let callbackURL {
+      items.append(URLQueryItem(name: "callbackURL", value: callbackURL))
+    }
+    components.queryItems = items
     return components.url!
   }
 

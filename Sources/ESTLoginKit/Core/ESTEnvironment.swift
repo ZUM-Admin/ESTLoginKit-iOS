@@ -11,12 +11,14 @@ import Foundation
 public enum ESTEnvironment {
   case production
   case development
+  case test
 
   /// 로그인/마이페이지 등 웹 화면 base URL.
   var webBaseURL: String {
     switch self {
     case .production:  return "https://estoneid.com"
     case .development: return "https://dev.estoneid.com"
+    case .test:        return "https://test.estoneid.com"
     }
   }
 
@@ -25,6 +27,7 @@ public enum ESTEnvironment {
     switch self {
     case .production:  return "https://api.estoneid.com"
     case .development: return "https://dev-api.estoneid.com"
+    case .test:        return "https://test-api.estoneid.com"
     }
   }
 }
