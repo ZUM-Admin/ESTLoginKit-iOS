@@ -456,7 +456,6 @@ let ssoToken = try await ESTLoginManager.shared.issueSSOToken(accessToken: acces
 본인인증은 로그인/회원가입과 **완전히 분리**되어 있습니다. 앱은 (1) 인증 여부를 조회하고, (2) 필요할 때 본인인증 화면을 직접 띄웁니다.
 
 > 상태 조회 API와 본인인증 화면(화면 URL / 완료 통지 방식 / 결과 필드) 스펙은 모두 확정·구현되었습니다.
-> 다만 `VerificationResult`에 `ci`/`di` 등 추가 필드를 넣을지는 아직 정해지지 않았습니다.
 
 ### 1. 인증 여부 조회 — `verificationStatus`
 
