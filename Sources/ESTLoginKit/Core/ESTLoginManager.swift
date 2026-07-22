@@ -63,9 +63,14 @@ public final actor ESTLoginManager {
     return try await provider.login()
   }
   
-  /// 로그아웃 — best-effort 정리.
-  /// 각 단계(네이버/카카오 토큰 삭제, 웹 세션 쿠키 삭제)는 서로 독립적으로 수행되며,
-  /// 한 provider의 실패(예: 해당 provider로 로그인하지 않은 상태)가 나머지 정리를 막지 않습니다.
+  /// 로그아웃 — 네이티브 SDK 토큰 정리 (best-effort).
+  /// 각 단계는 서로 독립적으로 수행되며, 한 provider의 실패(예: 해당 provider로 로그인하지
+  /// 않은 상태)가 나머지 정리를 막지 않습니다.
+  ///
+  /// 웹 세션(쿠키/스토리지)은 SDK가 건드리지 않습니다 — 웹 세션은 웹이 소유하며,
+  /// est 웹뷰는 열 때마다 accessToken 부트스트랩으로 세션을 새로 검증·수립하므로
+  /// 앱 로그아웃 시 로컬 웹 데이터를 지울 필요가 없습니다.
+  /// (앱이 저장한 accessToken/refreshToken 삭제는 호스트 책임)
   public func logout() async throws {
     // ① 네이버 — 로컬 토큰 삭제 (실패 시 SDK 내부에서 로깅만 함)
     NidOAuth.shared.logout()
@@ -79,26 +84,6 @@ public final actor ESTLoginManager {
         continuation.resume()
       }
     }
-
-    // ③ 웹 세션 데이터 삭제 — 항상 실행
-    await Self.clearWebSession()
-  }
-
-  /// estoneid.com 도메인의 WebView 세션 데이터 제거 (로그아웃 시 웹 세션 정리).
-  /// 쿠키뿐 아니라 localStorage / sessionStorage / IndexedDB 등 모든 데이터 타입을 제거한다.
-  /// (AccountSwitcher의 "바로 로그인" 기억은 쿠키가 아닌 localStorage에 저장될 수 있음)
-  @MainActor
-  private static func clearWebSession() async {
-    let store = WKWebsiteDataStore.default()
-    let allTypes = WKWebsiteDataStore.allWebsiteDataTypes()
-    let records = await store.dataRecords(ofTypes: allTypes)
-    let targets = records.filter { $0.displayName.contains("estoneid.com") }
-    guard !targets.isEmpty else {
-      ESTLog.debug("clearWebSession — no estoneid.com records found")
-      return
-    }
-    ESTLog.debug("clearWebSession — removing \(targets.count) record(s): \(targets.map(\.displayName))")
-    await store.removeData(ofTypes: allTypes, for: targets)
   }
 
   // MARK: - URLs
