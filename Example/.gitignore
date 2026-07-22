@@ -2,3 +2,6 @@
 xcuserdata/
 DerivedData/
 .omc/
+
+# 실제 시크릿 (placeholder를 덮어쓰는 로컬 override) — 절대 커밋하지 않음
+Config.local.xcconfig

@@ -1,9 +1,12 @@
 //
-//  Config.xcconfig
-//  ESTLoginKit 예제 — 실제 발급값을 여기에 붙여넣으세요.
+//  Config.xcconfig  (git 추적 — placeholder 템플릿)
+//  ESTLoginKit 예제 설정.
 //
-//  이 파일의 값이 빌드 설정 → Info.plist($(VAR) 치환) → 런타임(ExampleConfig)로 전달됩니다.
-//  소스 코드에는 시크릿이 없으므로, 값 교체는 이 파일만 수정하면 됩니다.
+//  ⚠️ 실제 발급값은 이 파일이 아니라 Config.local.xcconfig(git 미추적)에 넣으세요.
+//     맨 아래에서 그 파일을 선택적으로 include하며, 뒤에 오므로 아래 placeholder를 덮어씁니다.
+//     이렇게 하면 실수로 시크릿을 커밋할 위험이 없습니다.
+//
+//  값은 빌드 설정 → Info.plist($(VAR) 치환) → 런타임(ExampleConfig)로 전달됩니다.
 //
 //  ⚠️ xcconfig 주의: 값에 `//`가 들어가면 주석으로 해석됩니다.
 //     그래서 API 주소는 scheme(https://) 없이 host만 적습니다. (코드가 https://를 붙임)
@@ -26,3 +29,7 @@ NAVER_APP_NAME = YOUR_APP_NAME
 NAVER_CLIENT_ID = YOUR_NAVER_CLIENT_ID
 NAVER_CLIENT_SECRET = YOUR_NAVER_CLIENT_SECRET
 NAVER_URL_SCHEME = YOUR_NAVER_URL_SCHEME
+
+// 실제 값은 여기(Config.local.xcconfig, git 미추적)에서 위 placeholder를 덮어씁니다.
+// 파일이 없어도 빌드됩니다. (#include? = 선택적 포함)
+#include? "Config.local.xcconfig"
