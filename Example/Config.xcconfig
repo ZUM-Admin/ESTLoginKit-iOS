@@ -1,0 +1,28 @@
+//
+//  Config.xcconfig
+//  ESTLoginKit 예제 — 실제 발급값을 여기에 붙여넣으세요.
+//
+//  이 파일의 값이 빌드 설정 → Info.plist($(VAR) 치환) → 런타임(ExampleConfig)로 전달됩니다.
+//  소스 코드에는 시크릿이 없으므로, 값 교체는 이 파일만 수정하면 됩니다.
+//
+//  ⚠️ xcconfig 주의: 값에 `//`가 들어가면 주석으로 해석됩니다.
+//     그래서 API 주소는 scheme(https://) 없이 host만 적습니다. (코드가 https://를 붙임)
+//
+
+// ESTLoginKit 발급 클라이언트 ID (SDK 설정 + 토큰 교환 공통)
+EST_CLIENT_ID = YOUR_CLIENT_ID
+
+// 실행 환경: test | development | production
+EST_ENVIRONMENT = test
+
+// 토큰 교환용 백엔드 API host (scheme 제외). 예: test-api.estoneid.com
+EST_API_HOST = YOUR_API_HOST
+
+// 카카오 네이티브 앱 키
+KAKAO_APP_KEY = YOUR_KAKAO_APP_KEY
+
+// 네이버 로그인
+NAVER_APP_NAME = YOUR_APP_NAME
+NAVER_CLIENT_ID = YOUR_NAVER_CLIENT_ID
+NAVER_CLIENT_SECRET = YOUR_NAVER_CLIENT_SECRET
+NAVER_URL_SCHEME = YOUR_NAVER_URL_SCHEME

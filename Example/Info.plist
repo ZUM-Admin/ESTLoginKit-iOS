@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Config.xcconfig 값이 빌드 시 $(VAR)로 치환되어 런타임(ExampleConfig)에서 읽힌다. -->
+	<key>ESTClientID</key>
+	<string>$(EST_CLIENT_ID)</string>
+	<key>ESTEnvironment</key>
+	<string>$(EST_ENVIRONMENT)</string>
+	<key>ESTAPIHost</key>
+	<string>$(EST_API_HOST)</string>
+	<key>KakaoAppKey</key>
+	<string>$(KAKAO_APP_KEY)</string>
+	<key>NaverAppName</key>
+	<string>$(NAVER_APP_NAME)</string>
+	<key>NaverClientID</key>
+	<string>$(NAVER_CLIENT_ID)</string>
+	<key>NaverClientSecret</key>
+	<string>$(NAVER_CLIENT_SECRET)</string>
+	<key>NaverURLScheme</key>
+	<string>$(NAVER_URL_SCHEME)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>kakao</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>kakao$(KAKAO_APP_KEY)</string>
+				<string>kakao$(KAKAO_APP_KEY)-$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>naver</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>$(NAVER_URL_SCHEME)</string>
+			</array>
+		</dict>
+	</array>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>kakaotalk</string>
+		<string>kakaokompassauth</string>
+		<string>naversearchapp</string>
+		<string>naversearchthirdlogin</string>
+	</array>
+</dict>
+</plist>

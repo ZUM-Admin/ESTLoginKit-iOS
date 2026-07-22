@@ -1,0 +1,228 @@
+//
+//  ContentView.swift
+//  ESTLoginKit-iOS-Example
+//
+//  Created by ESTAID on 7/14/26.
+//
+
+import SwiftUI
+
+import ESTLoginKit
+
+struct ContentView: View {
+
+  @State private var authResult: AuthResult?
+  @State private var ssoToken: String?
+  @State private var estoneToken: EstoneToken?
+  @State private var statusMessage: String = "대기 중"
+
+  @State private var showLoginWebView = false
+
+  // sheet(isPresented:) + 별도 상태 조합은 갱신 전(stale) 상태로 콘텐츠가 평가돼
+  // 빈 화면이 뜰 수 있다. item 기반 sheet는 값이 클로저에 직접 전달되므로 안전하다.
+  @State private var webSheet: WebSheet?
+
+  private struct WebSheet: Identifiable {
+    enum Kind: String { case mypage, verification }
+
+    let kind: Kind
+    /// 웹뷰 부트스트랩용 accessToken — 뷰에 넘기면 SDK가 ssoToken 발급→세션 수립까지 처리
+    let accessToken: String
+
+    var id: String { kind.rawValue }
+  }
+
+  var body: some View {
+    NavigationStack {
+      List {
+        Section("네이티브 로그인") {
+          Button("카카오 로그인") { login(.kakao) }
+          Button("네이버 로그인") { login(.naver) }
+          Button("로그아웃", role: .destructive) { logout() }
+        }
+
+        Section("웹뷰") {
+          Button("웹 로그인") { showLoginWebView = true }
+          Button("마이페이지") { openWebSheet(.mypage) }
+          Button("본인인증") { openWebSheet(.verification) }
+        }
+
+        Section("상태") {
+          Text(statusMessage)
+            .font(.footnote)
+            .textSelection(.enabled)
+        }
+
+        if let result = authResult {
+          Section("AuthResult (네이티브)") {
+            row("authorizeToken", result.authorizeToken)
+            row("refreshToken", result.refreshToken)
+            row("ci", result.ci)
+            row("email", result.email)
+          }
+        }
+
+        if let ssoToken {
+          Section("SSO Token (OAuth code)") {
+            Text(ssoToken)
+              .font(.footnote)
+              .textSelection(.enabled)
+          }
+        }
+
+        if let token = estoneToken {
+          Section("EST 토큰") {
+            row("accessToken", token.accessToken)
+            row("refreshToken", token.refreshToken)
+            row("만료 시각", token.expiryDate.formatted(date: .abbreviated, time: .standard))
+            Button("토큰 갱신 (refresh-sso)") { renewToken() }
+            Button("저장된 토큰 삭제", role: .destructive) {
+              TokenStore.clear()
+              estoneToken = nil
+              statusMessage = "저장된 토큰 삭제됨"
+            }
+          }
+        }
+      }
+      .navigationTitle("ESTLoginKit 테스트")
+    }
+    .onAppear {
+      // 앱 재실행 시 저장된 토큰 복원
+      if estoneToken == nil, let stored = TokenStore.load() {
+        estoneToken = stored
+        statusMessage = "저장된 토큰 복원됨"
+      }
+    }
+    .sheet(isPresented: $showLoginWebView) {
+      // callbackURL 기본값 = ESTLoginManager.shared.appCallbackURL ({baseURL}/auth/app-callback)
+      LoginWebView(inspectable: true, completion: { token in
+        // ssoToken을 받았으면 웹뷰부터 닫고 토큰 발급을 진행한다
+        showLoginWebView = false
+        guard let token else {
+          statusMessage = "웹 로그인 종료 (토큰 없음)"
+          return
+        }
+        ssoToken = token
+        issueEstoneToken(ssoToken: token)
+      })
+      .ignoresSafeArea()
+    }
+    .sheet(item: $webSheet) { sheet in
+      switch sheet.kind {
+      case .mypage:
+        MyPageWebView(
+          accessToken: sheet.accessToken,
+          inspectable: true,
+          onError: { error in
+            statusMessage = "마이페이지 SSO 발급 실패: \(error)"
+            webSheet = nil
+          }
+        )
+        .ignoresSafeArea()
+
+      case .verification:
+        IdentityVerificationView(accessToken: sheet.accessToken, inspectable: true) { result in
+          switch result {
+          case .success(let verification):
+            statusMessage = "본인인증 성공: \(verification)"
+          case .failure(let error):
+            statusMessage = "본인인증 실패: \(error)"
+          }
+          webSheet = nil
+        }
+        .ignoresSafeArea()
+      }
+    }
+  }
+
+  // MARK: - Actions
+
+  /// 유효한 accessToken을 준비해 웹뷰를 연다. (ssoToken 발급은 뷰가 열릴 때 SDK가 수행)
+  private func openWebSheet(_ kind: WebSheet.Kind) {
+    Task {
+      guard let accessToken = await validAccessToken() else {
+        statusMessage = "유효한 accessToken 없음 — 로그인 필요"
+        return
+      }
+      webSheet = WebSheet(kind: kind, accessToken: accessToken)
+    }
+  }
+
+  /// 앱이 세션 SSoT — SDK는 유효한 accessToken을 받는다고 가정하므로,
+  /// 만료 판단·갱신은 호출 전에 앱이 처리한다.
+  private func validAccessToken() async -> String? {
+    guard let stored = TokenStore.load() else { return nil }
+    guard stored.expiryDate <= Date() else { return stored.accessToken }
+    guard let renewed = try? await EstoneAuth.renewToken(stored) else { return nil }
+    TokenStore.save(renewed)
+    return renewed.accessToken
+  }
+
+  private func login(_ platform: LoginPlatform) {
+    statusMessage = "\(platform) 로그인 중…"
+    Task {
+      do {
+        let result = try await ESTLoginManager.shared.login(with: platform)
+        authResult = result
+        statusMessage = "\(platform) 로그인 성공"
+      } catch {
+        statusMessage = "\(platform) 로그인 실패: \(error)"
+      }
+    }
+  }
+
+  /// ssoToken(OAuth code) → access/refresh 발급 → UserDefaults 저장
+  private func issueEstoneToken(ssoToken: String) {
+    statusMessage = "EST 토큰 발급 중…"
+    Task {
+      do {
+        let token = try await EstoneAuth.issueToken(ssoToken: ssoToken)
+        estoneToken = token
+        TokenStore.save(token)
+        statusMessage = "EST 토큰 발급 완료 (저장됨)"
+      } catch {
+        statusMessage = "EST 토큰 발급 실패: \(error)"
+      }
+    }
+  }
+
+  private func renewToken() {
+    guard let current = estoneToken else { return }
+    statusMessage = "토큰 갱신 중…"
+    Task {
+      do {
+        let renewed = try await EstoneAuth.renewToken(current)
+        estoneToken = renewed
+        TokenStore.save(renewed)
+        statusMessage = "토큰 갱신 완료"
+      } catch {
+        statusMessage = "토큰 갱신 실패: \(error)"
+      }
+    }
+  }
+
+  private func logout() {
+    Task {
+      await ESTLoginManager.shared.logout()
+      authResult = nil
+      ssoToken = nil
+      estoneToken = nil
+      TokenStore.clear()
+      statusMessage = "로그아웃 완료"
+    }
+  }
+
+  private func row(_ title: String, _ value: String) -> some View {
+    VStack(alignment: .leading, spacing: 2) {
+      Text(title).font(.caption).foregroundStyle(.secondary)
+      Text(value.isEmpty ? "(빈 값)" : value)
+        .font(.footnote)
+        .lineLimit(3)
+        .textSelection(.enabled)
+    }
+  }
+}
+
+#Preview {
+  ContentView()
+}
