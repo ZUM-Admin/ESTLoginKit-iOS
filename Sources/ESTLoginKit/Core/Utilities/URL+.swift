@@ -22,4 +22,19 @@ extension URL {
     guard let value = queryValue(for: name), !value.isEmpty else { return nil }
     return value
   }
+
+  /// 로그 출력용 문자열. `code` 쿼리에 ssoToken이 담기므로 값을 마스킹한다.
+  /// (ssoToken은 저장·로그 출력 금지)
+  var redactedForLog: String {
+    guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false),
+          let items = components.queryItems,
+          items.contains(where: { $0.name == "code" && !($0.value ?? "").isEmpty })
+    else { return absoluteString }
+
+    components.queryItems = items.map {
+      $0.name == "code" && !($0.value ?? "").isEmpty
+        ? URLQueryItem(name: $0.name, value: "***") : $0
+    }
+    return components.url?.absoluteString ?? absoluteString
+  }
 }

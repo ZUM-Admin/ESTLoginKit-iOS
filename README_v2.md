@@ -137,13 +137,18 @@ try await ESTLoginManager.shared.logout()
 
 ## 마이페이지
 
-`MyPageWebView`(SwiftUI) 또는 `ESTOneWebViewController`(UIKit)로 진입합니다. 로그인 세션 쿠키를 공유하므로 별도 인증 없이 접근됩니다. `url` 기본값은 `mypageURL`입니다.
+`MyPageWebView`(SwiftUI) 또는 `ESTOneWebViewController`(UIKit)로 진입합니다.
+**유효한 accessToken을 넘기는 방식을 권장**합니다 — SDK가 ssoToken 발급 → SSO 부트스트랩 →
+마이페이지 진입까지 처리하므로, 웹뷰 쿠키가 없거나 만료된 상태에서도 로그인 화면 없이 열립니다.
+(세션 쿠키가 살아있으면 `url:` 직접 진입도 가능. `url` 기본값은 `mypageURL`)
 
 ```swift
 .sheet(isPresented: $showMyPage) {
     MyPageWebView(
+        accessToken: accessToken,
         onPasswordChanged: { /* silent=true 로 토큰 재발급 */ },
-        onAccountDeleted:  { /* 로그아웃 처리 */ }
+        onAccountDeleted:  { /* 로그아웃 처리 */ },
+        onError: { _ in showMyPage = false }  // ssoToken 발급 실패 (만료 토큰 등)
     )
     .ignoresSafeArea()
 }
@@ -228,7 +233,10 @@ public final class IdentityVerificationViewController: UIViewController {
 {webBaseURL}/webview/verification?callbackURL=<앱 콜백 URL, URL인코딩>
 ```
 
-로그인 세션 쿠키(`WKWebsiteDataStore.default()`)를 공유하므로 임시 회원 세션이 그대로 전달되며,
+**유효한 accessToken을 넘기는 방식을 권장**합니다 — `IdentityVerificationView(accessToken:)` /
+`IdentityVerificationViewController(accessToken:)`로 열면 SDK가 ssoToken 발급 → SSO 부트스트랩 →
+본인인증 진입까지 처리하므로, 웹뷰 쿠키가 없거나 만료된 상태에서도 동작합니다.
+(세션 쿠키가 살아있으면 `url:` 직접 진입도 가능하며, 이때 임시 회원 세션이 그대로 전달됩니다)
 인증 회원 승격과 CI 충돌 해소는 웹뷰가 자체 처리합니다.
 
 **완료 통지는 ① 브릿지 → ② (브릿지 미등록 시) `callbackURL` 리다이렉트 순으로 실행되며, SDK가 둘 다 처리합니다.**
@@ -264,7 +272,7 @@ struct CheckoutButton: View {
             Task { await gateVerification() }
         }
         .sheet(isPresented: $showVerification) {
-            IdentityVerificationView { result in        // url·callbackURL 생략 = 브릿지로 결과 수신
+            IdentityVerificationView(accessToken: myAccessToken) { result in
                 showVerification = false
                 switch result {
                 case .success(let v): proceedCheckout(verificationToken: v.token)
@@ -298,7 +306,7 @@ func gateVerification() async {
     let status = try? await ESTLoginManager.shared.verificationStatus(accessToken: myAccessToken)
     guard status?.isVerified != true else { proceedCheckout(); return }
 
-    let vc = IdentityVerificationViewController { [weak self] result in
+    let vc = IdentityVerificationViewController(accessToken: myAccessToken) { [weak self] result in
         self?.dismiss(animated: true)
         if case .success(let v) = result { self?.proceedCheckout(verificationToken: v.token) }
     }
@@ -311,7 +319,10 @@ func gateVerification() async {
 > SDK가 `<callbackURL>?status=...&code=<ssoToken>` 리다이렉트를 가로채 같은 `onResult`로 전달합니다.
 >
 > ```swift
-> IdentityVerificationView(callbackURL: "https://estoneid.com/auth/app-callback") { result in
+> IdentityVerificationView(
+>     accessToken: myAccessToken,
+>     callbackURL: "https://estoneid.com/auth/app-callback"
+> ) { result in
 >     // 브릿지로 오든 callbackURL로 오든 결과 처리는 동일
 > }
 > ```

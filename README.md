@@ -344,24 +344,73 @@ let vc = LoginWebViewController(url: loginURL, inspectable: true) { [weak self] 
 
 ## 마이페이지
 
-로그인과 동일한 웹뷰를 사용하여 마이페이지를 열 수 있습니다. `WKWebsiteDataStore.default()`를 통해 쿠키가 공유되므로, 로그인 세션이 유지된 상태에서 마이페이지에 접근할 수 있습니다.
+마이페이지는 **SSO 부트스트랩 요청으로 여는 것을 권장**합니다. 웹뷰 쿠키가 없거나 만료된
+상태에서도 앱의 accessToken으로 웹 세션을 새로 수립하므로, 사용자가 로그인 화면을 다시 보지
+않습니다. (자세한 동작은 아래 [SSO 토큰](#sso-토큰-웹뷰-세션-수립) 참고)
 
 **SwiftUI**
 
 ```swift
 .sheet(isPresented: $showMypage) {
-    LoginWebView(url: await ESTLoginManager.shared.mypageURL)
-        .ignoresSafeArea()
+    MyPageWebView(
+        accessToken: accessToken,
+        onError: { _ in showMypage = false }  // ssoToken 발급 실패 (만료 토큰 등)
+    )
+    .ignoresSafeArea()
 }
 ```
 
 **UIKit**
 
 ```swift
-let mypageURL = await ESTLoginManager.shared.mypageURL
-let vc = LoginWebViewController(url: mypageURL)
+let request = try await ESTLoginManager.shared.authorizedMypageRequest(accessToken: accessToken)
+let vc = ESTOneWebViewController(request: request)
 present(vc, animated: true)
 ```
+
+> 웹뷰 세션 쿠키(`WKWebsiteDataStore.default()`)가 살아있는 경우에는
+> `MyPageWebView(url: ESTLoginManager.shared.mypageURL)`로 직접 진입할 수도 있습니다.
+
+## SSO 토큰 (웹뷰 세션 수립)
+
+마이페이지·본인인증 웹뷰가 기존 웹뷰 세션/쿠키에 의존하지 않도록, SDK가 앱의 accessToken으로
+일회성 SSO 토큰을 발급받아(`GET {apiBaseURL}/auth/sso/sso-token`) 웹의 부트스트랩 URL로 전달합니다.
+
+```http
+GET {baseURL}/webview/sso-login?code={ssoToken}&redirect_url={URL인코딩된 내부 경로}
+```
+
+- `code` (필수): 직전에 발급받은 ssoToken. 유효시간 60초
+- `redirect_url` (선택): 세션 수립 후 이동할 내부 경로(자체 쿼리 포함 전체를 1회 URL인코딩). 생략 시 홈(`/`)으로 이동. 외부 URL은 홈으로 대체됩니다
+
+웹은 `code`를 검증해 자체 세션 쿠키를 수립한 뒤 `redirect_url`로 이동시키므로,
+쿠키가 없는 기기/상태에서도 웹뷰를 열 수 있습니다. `code`가 만료 등으로 실패하면
+웹이 기존 세션을 정리하고 로그인 화면으로 보내며, 로그인 후 `redirect_url`로 복귀하므로
+앱의 별도 처리는 필요 없습니다.
+
+- SSO 토큰은 **유효 60초, 1회용**, AES256 암호화 문자열(파싱 금지)입니다.
+- 유효시간이 짧으므로 **웹뷰를 여는 시점마다 새로 발급**하세요. 미리 발급해 두면 만료돼 사용자가 불필요하게 로그인 화면을 보게 됩니다.
+- Keychain 등에 **저장하거나 로그로 출력하지 마세요.**
+- SDK는 stateless — **유효한 accessToken을 파라미터로 받는다고 가정**합니다. 만료 판단·갱신(refreshToken)은 앱 책임이며, 만료된 토큰을 넘기면 `AuthError.server(statusCode: 401)`이 던져집니다. 앱이 토큰을 갱신한 뒤 재호출하세요.
+
+```swift
+// 유효한 accessToken을 앱이 준비해서 넘긴다 (만료면 앱이 먼저 갱신)
+let accessToken = await tokenStore.validAccessToken()
+
+// 뷰에 accessToken만 넘기면 발급→부트스트랩→진입까지 SDK가 처리 (여는 시점마다 새로 발급)
+MyPageWebView(accessToken: accessToken, onError: { _ in ... })
+IdentityVerificationView(accessToken: accessToken) { result in ... }
+
+// 요청을 직접 만들어야 하면 (UIKit 등)
+let mypageRequest = try await ESTLoginManager.shared.authorizedMypageRequest(accessToken: accessToken)
+let verificationRequest = try await ESTLoginManager.shared.authorizedVerificationRequest(accessToken: accessToken)
+
+// 토큰만 직접 필요하면
+let ssoToken = try await ESTLoginManager.shared.issueSSOToken(accessToken: accessToken)
+```
+
+> accessToken이 만료됐거나 유효하지 않으면 `AuthError.server(statusCode: 401)`이 던져집니다.
+> 앱이 refreshToken으로 갱신한 뒤 재호출하세요. (SDK는 재시도하지 않습니다)
 
 ## 에러 처리
 

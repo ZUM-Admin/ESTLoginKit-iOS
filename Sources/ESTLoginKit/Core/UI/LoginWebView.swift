@@ -10,7 +10,7 @@ import WebKit
 
 public struct LoginWebView: UIViewControllerRepresentable {
 
-  private let url: URL
+  private let request: URLRequest
   private let callbackURL: String?
   private let externalUserAgent: String?
   private let inspectable: Bool
@@ -29,7 +29,30 @@ public struct LoginWebView: UIViewControllerRepresentable {
     onAccountDeleted: (() -> Void)? = nil,
     completion: ((String?) -> Void)? = nil
   ) {
-    self.url = url
+    self.init(
+      request: URLRequest(url: url),
+      callbackURL: callbackURL,
+      externalUserAgent: externalUserAgent,
+      inspectable: inspectable,
+      onWebViewCreated: onWebViewCreated,
+      onPasswordChanged: onPasswordChanged,
+      onAccountDeleted: onAccountDeleted,
+      completion: completion
+    )
+  }
+
+  /// SSO 부트스트랩 등 커스텀 요청으로 여는 경우. 예: `authorizedMypageRequest()`
+  public init(
+    request: URLRequest,
+    callbackURL: String? = ESTLoginManager.shared.appCallbackURL,
+    externalUserAgent: String? = nil,
+    inspectable: Bool = false,
+    onWebViewCreated: ((WKWebView) -> Void)? = nil,
+    onPasswordChanged: (() -> Void)? = nil,
+    onAccountDeleted: (() -> Void)? = nil,
+    completion: ((String?) -> Void)? = nil
+  ) {
+    self.request = request
     self.callbackURL = callbackURL
     self.externalUserAgent = externalUserAgent
     self.inspectable = inspectable
@@ -41,7 +64,7 @@ public struct LoginWebView: UIViewControllerRepresentable {
 
   public func makeUIViewController(context: Context) -> ESTOneWebViewController {
     ESTOneWebViewController(
-      url: url,
+      request: request,
       callbackURL: callbackURL,
       externalUserAgent: externalUserAgent,
       inspectable: inspectable,

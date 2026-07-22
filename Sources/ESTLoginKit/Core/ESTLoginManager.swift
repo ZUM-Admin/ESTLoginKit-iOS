@@ -103,7 +103,7 @@ public final actor ESTLoginManager {
 
   // MARK: - URLs
 
-  private nonisolated static var baseURL: String {
+  nonisolated static var baseURL: String {
     configuration?.baseURL ?? ESTLoginConfiguration.defaultBaseURL
   }
 

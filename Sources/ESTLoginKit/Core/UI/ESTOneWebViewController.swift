@@ -9,7 +9,7 @@ import UIKit
 import WebKit
 
 public final class ESTOneWebViewController: UIViewController {
-  private let url: URL
+  private let request: URLRequest
   private let callbackURL: String?
   private let externalUserAgent: String?
   private let inspectable: Bool
@@ -30,7 +30,7 @@ public final class ESTOneWebViewController: UIViewController {
   // 웹이 리다이렉트까지 수행해도 호스트가 결과를 두 번 받지 않도록 첫 전달만 통과시킨다.
   private var hasDeliveredVerificationResult = false
 
-  public init(
+  public convenience init(
     url: URL,
     callbackURL: String? = nil,
     externalUserAgent: String? = nil,
@@ -41,7 +41,32 @@ public final class ESTOneWebViewController: UIViewController {
     onVerificationResult: ((Result<VerificationResult, AuthError>) -> Void)? = nil,
     completion: ((String?) -> Void)? = nil
   ) {
-    self.url = url
+    self.init(
+      request: URLRequest(url: url),
+      callbackURL: callbackURL,
+      externalUserAgent: externalUserAgent,
+      inspectable: inspectable,
+      onWebViewCreated: onWebViewCreated,
+      onPasswordChanged: onPasswordChanged,
+      onAccountDeleted: onAccountDeleted,
+      onVerificationResult: onVerificationResult,
+      completion: completion
+    )
+  }
+
+  /// SSO 부트스트랩처럼 커스텀 요청으로 첫 화면을 열어야 할 때 사용한다.
+  public init(
+    request: URLRequest,
+    callbackURL: String? = nil,
+    externalUserAgent: String? = nil,
+    inspectable: Bool = false,
+    onWebViewCreated: ((WKWebView) -> Void)? = nil,
+    onPasswordChanged: (() -> Void)? = nil,
+    onAccountDeleted: (() -> Void)? = nil,
+    onVerificationResult: ((Result<VerificationResult, AuthError>) -> Void)? = nil,
+    completion: ((String?) -> Void)? = nil
+  ) {
+    self.request = request
     self.callbackURL = callbackURL
     self.externalUserAgent = externalUserAgent
     self.inspectable = inspectable
@@ -52,7 +77,7 @@ public final class ESTOneWebViewController: UIViewController {
     self.completion = completion
     // 빈 state("?state=")를 허용하면 hasPrefix("")가 항상 true가 되어
     // 첫 네비게이션에서 곧바로 completion이 호출된다.
-    self.initialState = url.nonEmptyQueryValue(for: "state")
+    self.initialState = request.url?.nonEmptyQueryValue(for: "state")
 
     let config = WKWebViewConfiguration()
     config.websiteDataStore = WKWebsiteDataStore.default()
@@ -107,7 +132,7 @@ public final class ESTOneWebViewController: UIViewController {
     // delegate 다 붙은 뒤 콜백 → 호스트가 setWebViewBridge 호출하면 Hackle이 우리 delegate를 wrap
     onWebViewCreated?(self.webView)
 
-    self.webView.load(URLRequest(url: self.url))
+    self.webView.load(self.request)
   }
 
   private func setupLayout() {
@@ -151,6 +176,9 @@ public final class ESTOneWebViewController: UIViewController {
   }
   
   private func ssoToken(_ url: URL) -> String? {
+    // 부트스트랩 URL(/webview/sso-login)의 code는 웹 세션 수립용 1회성 토큰이라
+    // 로그인 완료 code로 수집하면 안 된다. (completion에 소진된 토큰이 전달됨)
+    guard url.path != "/webview/sso-login" else { return nil }
     return url.nonEmptyQueryValue(for: "code")
   }
 
@@ -180,7 +208,7 @@ extension ESTOneWebViewController: WKNavigationDelegate {
       decisionHandler(.allow)
       return
     }
-    ESTLog.debug("navigation: \(navigatingURL.absoluteString)")
+    ESTLog.debug("navigation: \(navigatingURL.redactedForLog)")
 
     // 항상 최신 code로 갱신한다. 첫 code 고정 시, 리다이렉트가 중간에 취소되고
     // 재시도 체인이 새 code를 발급받으면(estoneid는 재발급 시 이전 code 무효화)
@@ -247,7 +275,7 @@ extension ESTOneWebViewController: WKNavigationDelegate {
   }
 
   public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-    ESTLog.debug("didFinish — \(webView.url?.absoluteString ?? "")")
+    ESTLog.debug("didFinish — \(webView.url?.redactedForLog ?? "")")
   }
 
   public func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
