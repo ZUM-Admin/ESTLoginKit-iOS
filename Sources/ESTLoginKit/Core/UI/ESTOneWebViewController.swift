@@ -140,8 +140,11 @@ public final class ESTOneWebViewController: UIViewController {
     self.webView.frame = self.view.frame
   }
 
-  /// SwiftUI 뷰 해제(dismantleUIViewController) 시 호출. 메시지 핸들러/델리게이트/로딩 정리로 누수 방지.
-  func teardown() {
+  /// 메시지 핸들러/델리게이트/로딩을 정리해 누수를 막는다.
+  /// SwiftUI 경로는 `dismantleUIViewController`에서 자동 호출한다.
+  /// UIKit에서 이 컨트롤러를 직접 present/push해 쓰는 경우, `onWebViewCreated`로
+  /// webView를 강참조하는 브릿지(예: Hackle)를 붙였다면 화면을 닫을 때 직접 호출해 순환을 끊어야 한다.
+  public func teardown() {
     WebViewMessage.allCases.forEach {
       webView.configuration.userContentController.removeScriptMessageHandler(forName: $0.rawValue)
     }

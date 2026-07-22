@@ -43,7 +43,7 @@ extension ESTLoginManager {
       throw AuthError.server(statusCode: statusCode)
     }
 
-    let decoded = try JSONDecoder().decode(CertificationStatusResponseDTO.self, from: data)
+    let decoded = try JSONDecoder.instance.decode(CertificationStatusResponseDTO.self, from: data)
     return VerificationStatus(isVerified: decoded.result.status == .certified)
   }
 }

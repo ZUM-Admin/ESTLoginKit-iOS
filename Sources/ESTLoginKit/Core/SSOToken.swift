@@ -85,7 +85,7 @@ extension ESTLoginManager {
     }
 
     do {
-      let ssoToken = try JSONDecoder().decode(SSOTokenResponseDTO.self, from: data).result.ssoToken
+      let ssoToken = try JSONDecoder.instance.decode(SSOTokenResponseDTO.self, from: data).result.ssoToken
       ESTLog.debug("issueSSOToken — issued (length: \(ssoToken.count))")
       return ssoToken
     } catch {

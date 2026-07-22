@@ -71,7 +71,9 @@ public final actor ESTLoginManager {
   /// est 웹뷰는 열 때마다 accessToken 부트스트랩으로 세션을 새로 검증·수립하므로
   /// 앱 로그아웃 시 로컬 웹 데이터를 지울 필요가 없습니다.
   /// (앱이 저장한 accessToken/refreshToken 삭제는 호스트 책임)
-  public func logout() async throws {
+  ///
+  /// 각 provider 정리는 실패해도 던지지 않고 로깅만 하므로 이 메서드는 throw하지 않는다.
+  public func logout() async {
     // ① 네이버 — 로컬 토큰 삭제 (실패 시 SDK 내부에서 로깅만 함)
     NidOAuth.shared.logout()
 

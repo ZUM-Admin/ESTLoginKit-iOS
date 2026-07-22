@@ -107,6 +107,13 @@ public final class IdentityVerificationViewController: UIViewController {
     fatalError("init(coder:) has not been implemented")
   }
 
+  deinit {
+    // 브릿지(Hackle 등)가 자식 webView를 강참조하면 자식은 dealloc되지 않지만,
+    // 부모(이 VC)는 순환 밖이라 화면이 닫히면 해제된다. 이 시점에 자식을 teardown해
+    // webView 참조를 끊어 브릿지 순환까지 정리한다. (SwiftUI 경로는 dismantle에서 처리)
+    webViewController?.teardown()
+  }
+
   public override func viewDidLoad() {
     super.viewDidLoad()
     view.backgroundColor = .systemBackground

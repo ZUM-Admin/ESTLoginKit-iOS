@@ -27,8 +27,6 @@ iOS 소셜 로그인 · 마이페이지 · **본인인증**을 간편하게 통�
 ## 요구사항
 
 - iOS 16.0+
-- Swift 5.7+
-- Xcode 15+
 
 ## 지원 기능
 
@@ -254,6 +252,21 @@ do {
 }
 ```
 
+성공 시 반환되는 `AuthResult`의 필드는 다음과 같습니다.
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `authorizeToken` | `String` | provider 액세스 토큰 |
+| `refreshToken` | `String` | provider 리프레시 토큰 (카카오/네이버 모두 제공) |
+| `ci` | `String` | 연계정보(CI). 네이버에서만 내려오며, 그 외에는 빈 문자열 |
+| `email` | `String` | 이메일 |
+
+> ⚠️ **`email`·`ci`는 빈 문자열(`""`)일 수 있습니다.**
+> 두 값은 로그인 성공 직후 provider 프로필 API를 **1회 best-effort**로 조회해 채웁니다.
+> Kakao Developers/네이버 개발자센터에서 해당 제공 항목(이메일·CI)이 활성화돼 있지 않거나
+> 사용자가 동의를 거부하면 값이 내려오지 않으며, 이 경우에도 로그인은 **성공으로 처리**되고
+> 해당 필드만 `""`가 됩니다. (email/ci 부재를 로그인 실패로 다루지 마세요.)
+
 ### 웹뷰 로그인
 
 `LoginWebView`(SwiftUI) 또는 `ESTOneWebViewController`(UIKit)를 사용해 웹 기반 로그인을 구현할 수 있습니다.
@@ -365,9 +378,10 @@ LoginWebView(inspectable: true) { ssoToken in
 ## 로그아웃
 
 ```swift
-try await ESTLoginManager.shared.logout()
+await ESTLoginManager.shared.logout()
 ```
 
+- `logout()`은 각 provider 정리 실패를 던지지 않고 로깅만 하므로 **throw하지 않습니다** (`try` 불필요).
 - 네이버/카카오 네이티브 토큰을 **각각 독립적으로(best-effort)** 삭제합니다. 한 provider 로그아웃이 실패해도 나머지 정리는 계속됩니다.
 - **웹 세션(쿠키/스토리지)은 SDK가 건드리지 않습니다** — 웹 세션은 웹이 소유하며, est 웹뷰는 열 때마다 accessToken 부트스트랩으로 세션을 새로 검증·수립하므로 앱 로그아웃 시 로컬 웹 데이터를 지울 필요가 없습니다.
 - 앱이 직접 저장한 accessToken/refreshToken(Keychain)은 **SDK가 보관하지 않으므로 호스트가 직접 삭제**해야 합니다. (SDK는 stateless)
