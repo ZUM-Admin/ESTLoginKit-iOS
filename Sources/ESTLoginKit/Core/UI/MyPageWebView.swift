@@ -134,9 +134,12 @@ public struct MyPageWebView: View {
   }
 
   private func resolveRequest(accessToken: String) async {
+    ESTLog.debug("mypage bootstrap — resolving")
     do {
-      resolvedRequest = try await ESTLoginManager.shared
+      let request = try await ESTLoginManager.shared
         .authorizedMypageRequest(accessToken: accessToken)
+      ESTLog.debug("mypage bootstrap — loading: \(request.url?.redactedForLog ?? "")")
+      resolvedRequest = request
     } catch {
       ESTLog.error("mypage bootstrap failed — \(error)")
       onError?(error)

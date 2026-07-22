@@ -67,6 +67,8 @@ extension ESTLoginManager {
       throw AuthError.unknown(nil)
     }
 
+    ESTLog.debug("issueSSOToken — requesting: \(url.absoluteString)")
+
     var request = URLRequest(url: url)
     request.httpMethod = "GET"
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
@@ -75,10 +77,23 @@ extension ESTLoginManager {
 
     let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
     if !(200..<300).contains(statusCode) {
+      // 바디는 에러 메시지만 담기므로 로그 허용 (성공 바디의 ssoToken은 로그 금지)
+      ESTLog.error(
+        "issueSSOToken failed — status: \(statusCode), body: \(String(data: data, encoding: .utf8) ?? "")"
+      )
       throw AuthError.server(statusCode: statusCode)
     }
 
-    return try JSONDecoder().decode(SSOTokenResponseDTO.self, from: data).result.ssoToken
+    do {
+      let ssoToken = try JSONDecoder().decode(SSOTokenResponseDTO.self, from: data).result.ssoToken
+      ESTLog.debug("issueSSOToken — issued (length: \(ssoToken.count))")
+      return ssoToken
+    } catch {
+      // 파싱 실패 = 응답 구조 불일치. 키 구조 파악을 위해 값은 빼고 키만 로그.
+      let keys = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?.keys
+      ESTLog.error("issueSSOToken — decode failed: \(error), top-level keys: \(keys.map { Array($0) } ?? [])")
+      throw error
+    }
   }
 
   /// SSO 부트스트랩 URL을 만든다.

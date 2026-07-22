@@ -135,11 +135,14 @@ public struct IdentityVerificationView: View {
   }
 
   private func resolveRequest(accessToken: String) async {
+    ESTLog.debug("verification bootstrap — resolving")
     do {
-      resolvedRequest = try await ESTLoginManager.shared.authorizedVerificationRequest(
+      let request = try await ESTLoginManager.shared.authorizedVerificationRequest(
         accessToken: accessToken,
         callbackURL: callbackURL
       )
+      ESTLog.debug("verification bootstrap — loading: \(request.url?.redactedForLog ?? "")")
+      resolvedRequest = request
     } catch {
       ESTLog.error("verification bootstrap failed — \(error)")
       onResult(.failure(error as? AuthError ?? .unknown(error)))
