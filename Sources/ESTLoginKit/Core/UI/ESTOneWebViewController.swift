@@ -26,9 +26,9 @@ public final class ESTOneWebViewController: UIViewController {
 
   private var ssoToken: String?
 
-  // 웹은 브릿지 → (실패 시) callbackURL 순으로 완료를 통지한다. 브릿지가 등록된 상태에서
-  // 웹이 리다이렉트까지 수행해도 호스트가 결과를 두 번 받지 않도록 첫 전달만 통과시킨다.
-  private var hasDeliveredVerificationResult = false
+  // 종료 콜백(로그인 completion / 본인인증 onVerificationResult)은 최초 1회만 호스트에 전달한다.
+  // 웹이 브릿지 → callbackURL 순으로 통지하거나 리다이렉트를 재시도해 여러 번 매칭돼도 중복 전달되지 않는다.
+  private var hasCompleted = false
 
   public convenience init(
     url: URL,
@@ -189,12 +189,22 @@ public final class ESTOneWebViewController: UIViewController {
 
   /// 본인인증 완료 통지를 호스트에 1회만 전달한다. (브릿지/callbackURL 중 먼저 도착한 쪽)
   private func deliverVerificationResult(status: String?, token: String?) {
-    guard !hasDeliveredVerificationResult else {
+    guard !hasCompleted else {
       ESTLog.debug("verification result already delivered — ignoring")
       return
     }
-    hasDeliveredVerificationResult = true
+    hasCompleted = true
     onVerificationResult?(VerificationCompleteStatus.result(status: status, token: token))
+  }
+
+  /// 로그인 완료(ssoToken 또는 nil)를 호스트에 1회만 전달한다. (callbackURL/state 매칭 중 먼저 도착한 쪽)
+  private func finishLogin(_ ssoToken: String?) {
+    guard !hasCompleted else {
+      ESTLog.debug("login completion already delivered — ignoring")
+      return
+    }
+    hasCompleted = true
+    completion?(ssoToken)
   }
 }
 
@@ -247,7 +257,7 @@ extension ESTOneWebViewController: WKNavigationDelegate {
       }
 
       ESTLog.debug("callback with ssoToken — completing")
-      completion?(self.ssoToken)
+      finishLogin(self.ssoToken)
       return
     }
 
@@ -256,7 +266,7 @@ extension ESTOneWebViewController: WKNavigationDelegate {
        navigatingURL.absoluteString.hasPrefix(state) {
       ESTLog.debug("state url match — completing with url: \(navigatingURL.absoluteString)")
       decisionHandler(.allow)
-      completion?(self.ssoToken)
+      finishLogin(self.ssoToken)
       return
     }
 
