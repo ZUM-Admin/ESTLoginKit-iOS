@@ -29,6 +29,7 @@ cp Config.xcconfig Config.local.xcconfig   # 시작 템플릿 복사 (Config.loc
 
 | 키 | 설명 |
 |------|------|
+| `EST_BUNDLE_ID` | 앱 번들 ID. **테스트할 서비스의 번들 ID로 지정** (카카오 `customScheme` 및 카카오/네이버 콘솔 등록값과 일치해야 함) |
 | `EST_CLIENT_ID` | ESTLoginKit에서 발급받은 클라이언트 ID (SDK 설정 + 토큰 교환 공통) |
 | `EST_ENVIRONMENT` | 실행 환경: `test` \| `development` \| `production` |
 | `EST_API_HOST` | 토큰 교환용 백엔드 API host (**scheme 제외**, 예: `test-api.estoneid.com`) |
@@ -39,6 +40,9 @@ cp Config.xcconfig Config.local.xcconfig   # 시작 템플릿 복사 (Config.loc
 
 > ⚠️ **xcconfig 주의:** 값에 `//`가 들어가면 주석으로 해석됩니다. 그래서 `EST_API_HOST`는
 > `https://` 없이 host만 적고, 코드가 `https://`를 붙입니다.
+
+> 📱 **실기기 실행 시:** 번들 ID를 실제 서비스 값으로 바꾸면 해당 ID에 맞는 서명 팀이 필요할 수 있습니다.
+> Xcode의 Signing & Capabilities에서 팀을 지정하세요. (시뮬레이터 빌드는 서명 불필요)
 
 URL Scheme(`kakao{앱키}`, `kakao{앱키}-{번들ID}`, 네이버 스킴)은 `Info.plist`가 위 값을 `$(VAR)`로
 자동 참조하므로 **따로 등록할 필요가 없습니다.**

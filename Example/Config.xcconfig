@@ -12,6 +12,10 @@
 //     그래서 API 주소는 scheme(https://) 없이 host만 적습니다. (코드가 https://를 붙임)
 //
 
+// 앱 번들 ID. 테스트할 서비스의 번들 ID로 지정하세요.
+// (카카오 customScheme `kakao{키}-{번들ID}` 및 카카오/네이버 콘솔 등록값과 일치해야 함)
+EST_BUNDLE_ID = com.example.estloginkit
+
 // ESTLoginKit 발급 클라이언트 ID (SDK 설정 + 토큰 교환 공통)
 EST_CLIENT_ID = YOUR_CLIENT_ID
 
