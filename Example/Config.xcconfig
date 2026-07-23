@@ -25,6 +25,12 @@ EST_ENVIRONMENT = test
 // 토큰 교환용 백엔드 API host (scheme 제외). 예: test-api.estoneid.com
 EST_API_HOST = YOUR_API_HOST
 
+// 로그인 콜백 URL(redirect_url / callbackURL). 비우면 SDK 기본값 사용.
+// ⚠️ 값에 `//`가 있으면 주석 처리됩니다. `//` 사이에 $()를 끼워 `https:/$()/` 로 적으세요.
+//    ($()는 빌드 시 빈 문자열로 치환되어 최종 https:// 가 됩니다)
+// 예: EST_APP_CALLBACK = https:/$()/dev-union-user-api.zum.com/api/login
+EST_APP_CALLBACK =
+
 // 카카오 네이티브 앱 키
 KAKAO_APP_KEY = YOUR_KAKAO_APP_KEY
 

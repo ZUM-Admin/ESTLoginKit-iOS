@@ -94,17 +94,23 @@ struct ContentView: View {
       }
     }
     .sheet(isPresented: $showLoginWebView) {
-      // callbackURL 기본값 = ESTLoginManager.shared.appCallbackURL ({baseURL}/auth/app-callback)
-      LoginWebView(inspectable: true, completion: { token in
-        // ssoToken을 받았으면 웹뷰부터 닫고 토큰 발급을 진행한다
-        showLoginWebView = false
-        guard let token else {
-          statusMessage = "웹 로그인 종료 (토큰 없음)"
-          return
+      // 콜백 URL: Config의 EST_APP_CALLBACK이 있으면 그 값, 없으면 SDK 기본값(appCallbackURL).
+      let callback = ExampleConfig.appCallback
+      LoginWebView(
+        url: ESTLoginManager.shared.loginURL(redirectURL: callback),
+        callbackURL: callback ?? ESTLoginManager.shared.appCallbackURL,
+        inspectable: true,
+        completion: { token in
+          // ssoToken을 받았으면 웹뷰부터 닫고 토큰 발급을 진행한다
+          showLoginWebView = false
+          guard let token else {
+            statusMessage = "웹 로그인 종료 (토큰 없음)"
+            return
+          }
+          ssoToken = token
+          issueEstoneToken(ssoToken: token)
         }
-        ssoToken = token
-        issueEstoneToken(ssoToken: token)
-      })
+      )
       .ignoresSafeArea()
     }
     .sheet(item: $webSheet) { sheet in

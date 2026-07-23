@@ -27,12 +27,18 @@ cp Config.xcconfig Config.local.xcconfig   # 시작 템플릿 복사 (Config.loc
 
 > `Config.local.xcconfig` 가 없어도 빌드는 됩니다(로그인만 동작 안 함). 값 채우는 곳은 이 파일 한 곳뿐입니다.
 
+### 환경 전환 (test ↔ dev)
+
+`Config.local.xcconfig`는 **공통 / [TEST] / [DEV]** 블록으로 나뉩니다. 환경을 바꾸려면
+활성 블록을 주석 처리하고 다른 블록의 주석을 해제하세요. (같은 키가 둘 다 살아있으면 뒤쪽이 이깁니다)
+
 | 키 | 설명 |
 |------|------|
 | `EST_BUNDLE_ID` | 앱 번들 ID. **테스트할 서비스의 번들 ID로 지정** (카카오 `customScheme` 및 카카오/네이버 콘솔 등록값과 일치해야 함) |
 | `EST_CLIENT_ID` | ESTLoginKit에서 발급받은 클라이언트 ID (SDK 설정 + 토큰 교환 공통) |
 | `EST_ENVIRONMENT` | 실행 환경: `test` \| `development` \| `production` |
 | `EST_API_HOST` | 토큰 교환용 백엔드 API host (**scheme 제외**, 예: `test-api.estoneid.com`) |
+| `EST_APP_CALLBACK` | 로그인 콜백 URL(redirect_url / callbackURL). 비우면 SDK 기본값 사용. `//` 주석 회피 위해 `https:/$()/...` 형태로 |
 | `KAKAO_APP_KEY` | 카카오 네이티브 앱 키 |
 | `NAVER_APP_NAME` | 네이버 로그인 화면에 표시되는 앱 이름 |
 | `NAVER_CLIENT_ID` / `NAVER_CLIENT_SECRET` | 네이버 앱 클라이언트 ID / Secret |

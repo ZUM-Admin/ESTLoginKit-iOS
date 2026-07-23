@@ -9,6 +9,8 @@
 	<string>$(EST_ENVIRONMENT)</string>
 	<key>ESTAPIHost</key>
 	<string>$(EST_API_HOST)</string>
+	<key>ESTAppCallback</key>
+	<string>$(EST_APP_CALLBACK)</string>
 	<key>KakaoAppKey</key>
 	<string>$(KAKAO_APP_KEY)</string>
 	<key>NaverAppName</key>

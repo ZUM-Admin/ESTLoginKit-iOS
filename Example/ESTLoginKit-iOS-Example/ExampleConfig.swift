@@ -16,6 +16,12 @@ enum ExampleConfig {
   /// 토큰 교환용 백엔드 API host (scheme 제외)
   static let apiHost = string("ESTAPIHost")
 
+  /// 로그인 콜백(redirect_url / callbackURL). 미지정이면 nil → SDK 기본값(appCallbackURL) 사용.
+  static var appCallback: String? {
+    let value = string("ESTAppCallback")
+    return value.isEmpty ? nil : value
+  }
+
   static let kakaoAppKey = string("KakaoAppKey")
   static let naverAppName = string("NaverAppName")
   static let naverClientID = string("NaverClientID")
