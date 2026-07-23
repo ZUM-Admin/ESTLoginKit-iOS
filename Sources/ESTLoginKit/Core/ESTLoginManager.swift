@@ -140,7 +140,7 @@ public final actor ESTLoginManager {
     guard let clientId = Self.configuration?.clientId else {
       fatalError("[ESTLoginKit] verificationURL requires initialize() to be called first")
     }
-    var components = URLComponents(string: "\(Self.baseURL)/webview/verification")!
+    var components = URLComponents(string: "\(Self.baseURL)/auth/verification")!
     var items = [URLQueryItem(name: "client_id", value: clientId)]
     if let callbackURL {
       items.append(URLQueryItem(name: "callbackURL", value: callbackURL))

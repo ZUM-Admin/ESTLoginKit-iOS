@@ -179,9 +179,9 @@ public final class ESTOneWebViewController: UIViewController {
   }
   
   private func ssoToken(_ url: URL) -> String? {
-    // 부트스트랩 URL(/webview/sso-login)의 code는 웹 세션 수립용 1회성 토큰이라
+    // 부트스트랩 URL(/auth/sso-login)의 code는 웹 세션 수립용 1회성 토큰이라
     // 로그인 완료 code로 수집하면 안 된다. (completion에 소진된 토큰이 전달됨)
-    guard url.path != "/webview/sso-login" else { return nil }
+    guard url.path != "/auth/sso-login" else { return nil }
     return url.nonEmptyQueryValue(for: "code")
   }
 

@@ -430,7 +430,7 @@ present(vc, animated: true)
 일회성 SSO 토큰을 발급받아(`GET {apiBaseURL}/auth/sso/sso-token`) 웹의 부트스트랩 URL로 전달합니다.
 
 ```http
-GET {baseURL}/webview/sso-login?code={ssoToken}&redirect_url={URL인코딩된 내부 경로}
+GET {baseURL}/auth/sso-login?code={ssoToken}&redirect_url={URL인코딩된 내부 경로}
 ```
 
 - `code` (필수): 직전에 발급받은 ssoToken. 유효시간 60초
@@ -537,7 +537,7 @@ public final class IdentityVerificationViewController: UIViewController {
 목적지 URL은 `ESTLoginManager.shared.verificationURL(callbackURL:)`로 생성됩니다.
 
 ```
-{webBaseURL}/webview/verification?client_id={클라이언트 ID}&callbackURL=<앱 콜백 URL, URL인코딩>
+{webBaseURL}/auth/verification?client_id={클라이언트 ID}&callbackURL=<앱 콜백 URL, URL인코딩>
 ```
 
 인증 회원 승격과 CI 충돌 해소는 웹뷰가 자체 처리합니다.

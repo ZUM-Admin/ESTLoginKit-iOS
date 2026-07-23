@@ -99,7 +99,7 @@ struct VerificationURLTests {
     @Test("client_id는 항상 쿼리에 포함")
     func urlWithoutCallback() {
         let url = ESTLoginManager.shared.verificationURL()
-        #expect(url.path == "/webview/verification")
+        #expect(url.path == "/auth/verification")
         #expect(url.queryValue(for: "client_id") == "test_client")
         #expect(url.queryValue(for: "callbackURL") == nil)
     }

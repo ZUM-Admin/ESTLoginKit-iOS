@@ -5,7 +5,7 @@
 //  SSO 토큰 발급 — 웹뷰 세션/쿠키에 의존하지 않도록, 앱이 주입한 accessToken으로
 //  일회성 SSO 토큰(유효 60초)을 발급받아 웹의 부트스트랩 URL로 전달한다.
 //
-//    GET {baseURL}/webview/sso-login?code={ssoToken}&redirect_url={URL인코딩된 내부 경로}
+//    GET {baseURL}/auth/sso-login?code={ssoToken}&redirect_url={URL인코딩된 내부 경로}
 //
 //  웹은 code를 검증해 자체 세션 쿠키를 수립한 뒤 redirect_url로 이동시키므로,
 //  쿠키가 없는 기기/상태에서도 마이페이지·본인인증 웹뷰를 열 수 있다.
@@ -97,11 +97,11 @@ extension ESTLoginManager {
   }
 
   /// SSO 부트스트랩 URL을 만든다.
-  /// `GET {baseURL}/webview/sso-login?code={ssoToken}&redirect_url={인코딩된 내부 경로}`
+  /// `GET {baseURL}/auth/sso-login?code={ssoToken}&redirect_url={인코딩된 내부 경로}`
   /// - Parameter redirectURL: 세션 수립 후 이동할 est 내부 경로(자체 쿼리 포함, 미인코딩 원본).
   ///   nil이면 생략되어 홈(/)으로 이동한다. 외부 URL은 웹이 홈으로 대체한다.
   static func ssoLoginURL(redirectURL: String?, ssoToken: String) -> URL {
-    var components = URLComponents(string: "\(baseURL)/webview/sso-login")!
+    var components = URLComponents(string: "\(baseURL)/auth/sso-login")!
     var query = "code=\(queryEncoded(ssoToken))"
     if let redirectURL {
       query += "&redirect_url=\(queryEncoded(redirectURL))"
@@ -110,7 +110,7 @@ extension ESTLoginManager {
     return components.url!
   }
 
-  /// 목적지 URL에서 redirect_url 값(path + query)을 추출한다. 예: `/webview/verification?client_id=1`
+  /// 목적지 URL에서 redirect_url 값(path + query)을 추출한다. 예: `/auth/verification?client_id=1`
   static func redirectURLValue(from url: URL) -> String {
     let query = url.query.map { "?\($0)" } ?? ""
     return url.path + query
