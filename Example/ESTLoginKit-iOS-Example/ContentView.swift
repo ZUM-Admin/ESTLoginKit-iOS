@@ -139,40 +139,30 @@ struct ContentView: View {
     }
   }
 
-  /// 로그인 웹뷰 콘텐츠. accessToken 유무에 따라 부트스트랩/신규 로그인으로 분기.
-  @ViewBuilder
+  /// 로그인 웹뷰 콘텐츠. 웹뷰 = 무조건 부트스트랩(`/auth/sso-login`).
+  /// accessToken 있으면 code 실어 세션 수립, 없으면 code 없이 열고 웹이 로그인 페이지로 라우팅.
   private func loginWebView(accessToken: String?) -> some View {
     // 콜백 URL: Config의 EST_APP_CALLBACK이 있으면 그 값, 없으면 SDK 기본값(appCallbackURL).
     let callback = ExampleConfig.appCallback
-    let completion: (String?) -> Void = { token in
-      webSheet = nil
-      guard let token else {
-        statusMessage = "웹 로그인 종료 (토큰 없음)"
-        return
+    return LoginWebView(
+      accessToken: accessToken,
+      redirectURL: callback,
+      callbackURL: callback ?? ESTLoginManager.shared.appCallbackURL,
+      inspectable: true,
+      onError: { error in
+        statusMessage = "로그인 부트스트랩 실패: \(error)"
+        webSheet = nil
+      },
+      completion: { token in
+        webSheet = nil
+        guard let token else {
+          statusMessage = "웹 로그인 종료 (토큰 없음)"
+          return
+        }
+        ssoToken = token
+        issueEstoneToken(ssoToken: token)
       }
-      ssoToken = token
-      issueEstoneToken(ssoToken: token)
-    }
-    if let accessToken {
-      LoginWebView(
-        accessToken: accessToken,
-        redirectURL: callback,
-        callbackURL: callback ?? ESTLoginManager.shared.appCallbackURL,
-        inspectable: true,
-        onError: { error in
-          statusMessage = "로그인 부트스트랩 실패: \(error)"
-          webSheet = nil
-        },
-        completion: completion
-      )
-    } else {
-      LoginWebView(
-        url: ESTLoginManager.shared.loginURL(redirectURL: callback),
-        callbackURL: callback ?? ESTLoginManager.shared.appCallbackURL,
-        inspectable: true,
-        completion: completion
-      )
-    }
+    )
   }
 
   /// 유효한 accessToken을 준비해 웹뷰를 연다. (ssoToken 발급은 뷰가 열릴 때 SDK가 수행)

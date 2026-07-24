@@ -16,8 +16,8 @@ import WebKit
 public struct LoginWebView: View {
 
   private enum Source {
-    /// 열 때마다 ssoToken을 새로 발급해 부트스트랩 (accessToken 기반)
-    case accessToken(String, redirectURL: String?, state: String?)
+    /// 열 때마다 부트스트랩(`/auth/sso-login`)으로 진입. accessToken이 nil이면 code 없이 열고 웹이 로그인 페이지로 라우팅
+    case accessToken(String?, redirectURL: String?, state: String?)
     /// 이미 만들어 둔 요청으로 진입 (url 또는 커스텀 요청)
     case request(URLRequest)
   }
@@ -87,7 +87,7 @@ public struct LoginWebView: View {
   ///   - accessToken: 앱이 보유한 유효한 accessToken. 만료 판단·갱신은 앱 책임.
   ///   - onError: ssoToken 발급 실패 시 호출. 만료 토큰이면 `AuthError.server(statusCode: 401)`.
   public init(
-    accessToken: String,
+    accessToken: String?,
     redirectURL: String? = nil,
     state: String? = nil,
     callbackURL: String? = ESTLoginManager.shared.appCallbackURL,
@@ -138,7 +138,7 @@ public struct LoginWebView: View {
     )
   }
 
-  private func resolveRequest(accessToken: String, redirectURL: String?, state: String?) async {
+  private func resolveRequest(accessToken: String?, redirectURL: String?, state: String?) async {
     ESTLog.debug("login bootstrap — resolving")
     do {
       let request = try await ESTLoginManager.shared.authorizedLoginRequest(

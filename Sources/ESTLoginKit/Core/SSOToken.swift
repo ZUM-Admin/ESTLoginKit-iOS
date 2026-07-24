@@ -48,16 +48,22 @@ extension ESTLoginManager {
 
   /// 로그인 화면으로 이동하는 SSO 부트스트랩 요청. (마이페이지/본인인증과 동일 방식)
   ///
-  /// 유효한 accessToken으로 fresh ssoToken을 발급해(`/auth/sso-login`) 세션을 수립한 뒤 로그인 페이지로 이동한다.
-  /// 로그인 웹뷰를 accessToken 기반으로 열고 싶을 때 사용한다. (accessToken이 없으면 `loginURL()` 직접 사용)
+  /// 로그인 웹뷰는 항상 `/auth/sso-login` 부트스트랩으로 연다.
+  /// - `accessToken`이 유효하면 fresh ssoToken을 발급해 `code`로 실어 세션을 수립한다.
+  /// - `accessToken`이 nil/빈 값이면 `code` 없이 열고, 웹이 세션 없음으로 보고 로그인 페이지로 라우팅한다.
   ///
-  /// - Parameter accessToken: 앱이 보유한 유효한 accessToken. 만료 시 `AuthError.server(statusCode: 401)`.
+  /// - Parameter accessToken: 앱이 보유한 유효한 accessToken (또는 nil). 만료 시 `AuthError.server(statusCode: 401)`.
   public func authorizedLoginRequest(
-    accessToken: String,
+    accessToken: String?,
     redirectURL: String? = nil,
     state: String? = nil
   ) async throws -> URLRequest {
-    let ssoToken = try await issueSSOToken(accessToken: accessToken)
+    let ssoToken: String?
+    if let accessToken, !accessToken.isEmpty {
+      ssoToken = try await issueSSOToken(accessToken: accessToken)
+    } else {
+      ssoToken = nil
+    }
     return URLRequest(
       url: Self.ssoLoginURL(
         redirectURL: Self.redirectURLValue(from: loginURL(redirectURL: redirectURL, state: state)),
@@ -120,13 +126,18 @@ extension ESTLoginManager {
   /// `GET {baseURL}/auth/sso-login?code={ssoToken}&redirect_url={인코딩된 내부 경로}`
   /// - Parameter redirectURL: 세션 수립 후 이동할 est 내부 경로(자체 쿼리 포함, 미인코딩 원본).
   ///   nil이면 생략되어 홈(/)으로 이동한다. 외부 URL은 웹이 홈으로 대체한다.
-  static func ssoLoginURL(redirectURL: String?, ssoToken: String) -> URL {
+  /// - Parameter ssoToken: 세션 수립용 1회성 토큰. nil/빈 값이면 `code`가 생략되고, 웹은 세션 없음으로 보고
+  ///   로그인 페이지로 라우팅한다. (accessToken 없이 로그인 웹뷰를 부트스트랩으로 열 때)
+  static func ssoLoginURL(redirectURL: String?, ssoToken: String?) -> URL {
     var components = URLComponents(string: "\(baseURL)/auth/sso-login")!
-    var query = "code=\(queryEncoded(ssoToken))"
-    if let redirectURL {
-      query += "&redirect_url=\(queryEncoded(redirectURL))"
+    var parts: [String] = []
+    if let ssoToken, !ssoToken.isEmpty {
+      parts.append("code=\(queryEncoded(ssoToken))")
     }
-    components.percentEncodedQuery = query
+    if let redirectURL {
+      parts.append("redirect_url=\(queryEncoded(redirectURL))")
+    }
+    components.percentEncodedQuery = parts.joined(separator: "&")
     return components.url!
   }
 
