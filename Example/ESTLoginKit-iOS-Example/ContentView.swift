@@ -16,18 +16,17 @@ struct ContentView: View {
   @State private var estoneToken: EstoneToken?
   @State private var statusMessage: String = "대기 중"
 
-  @State private var showLoginWebView = false
-
   // sheet(isPresented:) + 별도 상태 조합은 갱신 전(stale) 상태로 콘텐츠가 평가돼
   // 빈 화면이 뜰 수 있다. item 기반 sheet는 값이 클로저에 직접 전달되므로 안전하다.
   @State private var webSheet: WebSheet?
 
   private struct WebSheet: Identifiable {
-    enum Kind: String { case mypage, verification }
+    enum Kind: String { case mypage, verification, login }
 
     let kind: Kind
-    /// 웹뷰 부트스트랩용 accessToken — 뷰에 넘기면 SDK가 ssoToken 발급→세션 수립까지 처리
-    let accessToken: String
+    /// 웹뷰 부트스트랩용 accessToken — 뷰에 넘기면 SDK가 ssoToken 발급→세션 수립까지 처리.
+    /// login은 nil 가능(accessToken 없으면 신규 로그인 `/user/login`).
+    let accessToken: String?
 
     var id: String { kind.rawValue }
   }
@@ -42,7 +41,7 @@ struct ContentView: View {
         }
 
         Section("웹뷰") {
-          Button("웹 로그인") { showLoginWebView = true }
+          Button("웹 로그인") { openLoginSheet() }
           Button("마이페이지") { openWebSheet(.mypage) }
           Button("본인인증") { openWebSheet(.verification) }
         }
@@ -93,55 +92,88 @@ struct ContentView: View {
         statusMessage = "저장된 토큰 복원됨"
       }
     }
-    .sheet(isPresented: $showLoginWebView) {
-      // 콜백 URL: Config의 EST_APP_CALLBACK이 있으면 그 값, 없으면 SDK 기본값(appCallbackURL).
-      let callback = ExampleConfig.appCallback
-      LoginWebView(
-        url: ESTLoginManager.shared.loginURL(redirectURL: callback),
-        callbackURL: callback ?? ESTLoginManager.shared.appCallbackURL,
-        inspectable: true,
-        completion: { token in
-          // ssoToken을 받았으면 웹뷰부터 닫고 토큰 발급을 진행한다
-          showLoginWebView = false
-          guard let token else {
-            statusMessage = "웹 로그인 종료 (토큰 없음)"
-            return
-          }
-          ssoToken = token
-          issueEstoneToken(ssoToken: token)
-        }
-      )
-      .ignoresSafeArea()
-    }
     .sheet(item: $webSheet) { sheet in
       switch sheet.kind {
+      case .login:
+        loginWebView(accessToken: sheet.accessToken)
+          .ignoresSafeArea()
+
       case .mypage:
-        MyPageWebView(
-          accessToken: sheet.accessToken,
-          inspectable: true,
-          onError: { error in
-            statusMessage = "마이페이지 SSO 발급 실패: \(error)"
-            webSheet = nil
-          }
-        )
-        .ignoresSafeArea()
+        if let accessToken = sheet.accessToken {
+          MyPageWebView(
+            accessToken: accessToken,
+            inspectable: true,
+            onError: { error in
+              statusMessage = "마이페이지 SSO 발급 실패: \(error)"
+              webSheet = nil
+            }
+          )
+          .ignoresSafeArea()
+        }
 
       case .verification:
-        IdentityVerificationView(accessToken: sheet.accessToken, inspectable: true) { result in
-          switch result {
-          case .success(let verification):
-            statusMessage = "본인인증 성공: \(verification)"
-          case .failure(let error):
-            statusMessage = "본인인증 실패: \(error)"
+        if let accessToken = sheet.accessToken {
+          IdentityVerificationView(accessToken: accessToken, inspectable: true) { result in
+            switch result {
+            case .success(let verification):
+              statusMessage = "본인인증 성공: \(verification)"
+            case .failure(let error):
+              statusMessage = "본인인증 실패: \(error)"
+            }
+            webSheet = nil
           }
-          webSheet = nil
+          .ignoresSafeArea()
         }
-        .ignoresSafeArea()
       }
     }
   }
 
   // MARK: - Actions
+
+  /// 웹 로그인 진입. 유효한 accessToken이 있으면 마이페이지/본인인증처럼 SSO 부트스트랩(`/auth/sso-login`)으로,
+  /// 없으면 신규 로그인(`/user/login`)으로 연다.
+  private func openLoginSheet() {
+    Task {
+      let token = await validAccessToken()   // nil 가능
+      webSheet = WebSheet(kind: .login, accessToken: token)
+    }
+  }
+
+  /// 로그인 웹뷰 콘텐츠. accessToken 유무에 따라 부트스트랩/신규 로그인으로 분기.
+  @ViewBuilder
+  private func loginWebView(accessToken: String?) -> some View {
+    // 콜백 URL: Config의 EST_APP_CALLBACK이 있으면 그 값, 없으면 SDK 기본값(appCallbackURL).
+    let callback = ExampleConfig.appCallback
+    let completion: (String?) -> Void = { token in
+      webSheet = nil
+      guard let token else {
+        statusMessage = "웹 로그인 종료 (토큰 없음)"
+        return
+      }
+      ssoToken = token
+      issueEstoneToken(ssoToken: token)
+    }
+    if let accessToken {
+      LoginWebView(
+        accessToken: accessToken,
+        redirectURL: callback,
+        callbackURL: callback ?? ESTLoginManager.shared.appCallbackURL,
+        inspectable: true,
+        onError: { error in
+          statusMessage = "로그인 부트스트랩 실패: \(error)"
+          webSheet = nil
+        },
+        completion: completion
+      )
+    } else {
+      LoginWebView(
+        url: ESTLoginManager.shared.loginURL(redirectURL: callback),
+        callbackURL: callback ?? ESTLoginManager.shared.appCallbackURL,
+        inspectable: true,
+        completion: completion
+      )
+    }
+  }
 
   /// 유효한 accessToken을 준비해 웹뷰를 연다. (ssoToken 발급은 뷰가 열릴 때 SDK가 수행)
   private func openWebSheet(_ kind: WebSheet.Kind) {

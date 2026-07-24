@@ -46,6 +46,26 @@ extension ESTLoginManager {
     )
   }
 
+  /// 로그인 화면으로 이동하는 SSO 부트스트랩 요청. (마이페이지/본인인증과 동일 방식)
+  ///
+  /// 유효한 accessToken으로 fresh ssoToken을 발급해(`/auth/sso-login`) 세션을 수립한 뒤 로그인 페이지로 이동한다.
+  /// 로그인 웹뷰를 accessToken 기반으로 열고 싶을 때 사용한다. (accessToken이 없으면 `loginURL()` 직접 사용)
+  ///
+  /// - Parameter accessToken: 앱이 보유한 유효한 accessToken. 만료 시 `AuthError.server(statusCode: 401)`.
+  public func authorizedLoginRequest(
+    accessToken: String,
+    redirectURL: String? = nil,
+    state: String? = nil
+  ) async throws -> URLRequest {
+    let ssoToken = try await issueSSOToken(accessToken: accessToken)
+    return URLRequest(
+      url: Self.ssoLoginURL(
+        redirectURL: Self.redirectURLValue(from: loginURL(redirectURL: redirectURL, state: state)),
+        ssoToken: ssoToken
+      )
+    )
+  }
+
   /// 본인인증으로 이동하는 SSO 부트스트랩 요청.
   ///
   /// - Parameter accessToken: 앱이 보유한 유효한 accessToken. 만료 시 `AuthError.server(statusCode: 401)`.
