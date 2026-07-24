@@ -77,7 +77,7 @@ public final class ESTOneWebViewController: UIViewController {
     self.completion = completion
     // 빈 state("?state=")를 허용하면 hasPrefix("")가 항상 true가 되어
     // 첫 네비게이션에서 곧바로 completion이 호출된다.
-    self.initialState = request.url?.nonEmptyQueryValue(for: "state")
+    self.initialState = Self.resolveInitialState(from: request.url)
 
     let config = WKWebViewConfiguration()
     config.websiteDataStore = WKWebsiteDataStore.default()
@@ -183,6 +183,22 @@ public final class ESTOneWebViewController: UIViewController {
     // 로그인 완료 code로 수집하면 안 된다. (completion에 소진된 토큰이 전달됨)
     guard url.path != "/auth/sso-login" else { return nil }
     return url.nonEmptyQueryValue(for: "code")
+  }
+
+  /// 로그인 완료 감지(state 매칭)의 대상 state를 요청 URL에서 추출한다.
+  /// 1) top-level `state` — `/user/login?...&state=` 직접 진입
+  /// 2) 없으면 부트스트랩(`/auth/sso-login?redirect_url=<.../user/login?...&state=...>`)의
+  ///    `redirect_url` 안쪽 `state` — 부트스트랩 진입 시 호스트가 top-level state를
+  ///    중복으로 싣지 않아도 완료를 감지할 수 있게 한다.
+  private static func resolveInitialState(from url: URL?) -> String? {
+    guard let url else { return nil }
+    if let top = url.nonEmptyQueryValue(for: "state") { return top }
+    guard let redirect = url.nonEmptyQueryValue(for: "redirect_url"),
+          let inner = URLComponents(string: redirect),
+          let nested = inner.queryItems?.first(where: { $0.name == "state" })?.value,
+          !nested.isEmpty
+    else { return nil }
+    return nested
   }
 
   // MARK: - Identity Verification
