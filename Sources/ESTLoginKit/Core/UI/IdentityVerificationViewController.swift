@@ -43,7 +43,8 @@ public final class IdentityVerificationViewController: UIViewController {
   ///
   /// - Parameters:
   ///   - accessToken: 앱이 보유한 유효한 accessToken. 만료 판단·갱신은 앱 책임.
-  ///   - callbackURL: 브릿지 미등록 시 리다이렉트될 앱 콜백 URL. 기본값은 `appCallbackURL`.
+  ///   - callbackURL: 완료 시 리다이렉트될 앱 콜백 URL. 기본값은 `appCallbackURL`.
+  ///     결과는 이 리다이렉트로만 도착하므로 `nil`을 넘기면 `onResult`가 호출되지 않는다.
   ///   - onResult: 발급 실패 시 `.failure(.server(statusCode: 401))` 등,
   ///     사용자 취소 시 `.failure(.cancelled)`, 승격/병합 실패 시 `.failure(.verificationFailed)`.
   public init(

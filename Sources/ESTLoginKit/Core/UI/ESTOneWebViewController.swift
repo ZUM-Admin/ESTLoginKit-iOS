@@ -27,7 +27,7 @@ public final class ESTOneWebViewController: UIViewController {
   private var ssoToken: String?
 
   // 종료 콜백(로그인 completion / 본인인증 onVerificationResult)은 최초 1회만 호스트에 전달한다.
-  // 웹이 브릿지 → callbackURL 순으로 통지하거나 리다이렉트를 재시도해 여러 번 매칭돼도 중복 전달되지 않는다.
+  // 웹이 리다이렉트를 재시도해 callbackURL이 여러 번 매칭돼도 중복 전달되지 않는다.
   private var hasCompleted = false
 
   public convenience init(
@@ -203,7 +203,7 @@ public final class ESTOneWebViewController: UIViewController {
 
   // MARK: - Identity Verification
 
-  /// 본인인증 완료 통지를 호스트에 1회만 전달한다. (브릿지/callbackURL 중 먼저 도착한 쪽)
+  /// 본인인증 완료 통지를 호스트에 1회만 전달한다. (`callbackURL` 리다이렉트로만 도착한다)
   private func deliverVerificationResult(status: String?, token: String?) {
     guard !hasCompleted else {
       ESTLog.debug("verification result already delivered — ignoring")
@@ -262,7 +262,7 @@ extension ESTOneWebViewController: WKNavigationDelegate {
        navigatingURL.absoluteString.hasPrefix(callbackURL) {
       decisionHandler(.cancel)
 
-      // 본인인증 화면은 브릿지 미등록 시에만 여기로 리다이렉트된다(?status=...&code=<ssoToken>).
+      // 본인인증 완료는 이 리다이렉트로만 통지된다(?status=...&code=<ssoToken>).
       if onVerificationResult != nil {
         ESTLog.debug("verification callback — completing")
         deliverVerificationResult(
@@ -355,24 +355,12 @@ extension ESTOneWebViewController: WKScriptMessageHandler {
       ESTLog.debug("onAccountDeleted")
       onAccountDeleted?()
 
-    case .onVerificationComplete:
-      guard let body = message.body as? String,
-            let data = body.data(using: .utf8),
-            let dto = action.decode(from: data) as? VerificationCompletePayload
-      else {
-        // 파싱 실패 시에도 결과를 흘려보내야 호스트의 화면이 열린 채로 남지 않는다.
-        ESTLog.error("message parse failed — name: \(message.name)")
-        deliverVerificationResult(status: nil, token: nil)
-        return
-      }
-      ESTLog.debug("onVerificationComplete — status: \(dto.status)")
-      deliverVerificationResult(status: dto.status, token: dto.token)
     }
   }
 
   private func handleAction(_ action: WebViewMessage, payload: Decodable) {
     switch action {
-    case .onLoginComplete, .onPasswordChanged, .onAccountDeleted, .onVerificationComplete:
+    case .onLoginComplete, .onPasswordChanged, .onAccountDeleted:
       // userContentController에서 직접 처리됨
       break
 

@@ -113,8 +113,11 @@ let config = ESTLoginConfiguration.Builder(clientId: "YOUR_CLIENT_ID")
     .useNaver(NaverConfiguration(appName: "앱이름", clientID: "CLIENT_ID", clientSecret: "SECRET", urlScheme: "YOUR_SCHEME"))
     .build()
 
-await ESTLoginManager.shared.initialize(with: config)
+ESTLoginManager.shared.initialize(with: config)
 ```
+
+> `initialize`는 **동기 메서드**입니다(`await` 불필요). `didFinishLaunching`에서 `Task` 없이 바로 호출하세요.
+> `Task`로 감싸면 초기화가 끝나기 전에 `loginURL()` 등이 호출돼 크래시할 수 있습니다.
 
 #### 실행 환경 지정 (선택)
 
@@ -543,14 +546,18 @@ public final class IdentityVerificationViewController: UIViewController {
 인증 회원 승격과 CI 충돌 해소는 웹뷰가 자체 처리합니다.
 (세션 쿠키가 살아있으면 `url:` 직접 진입도 가능하며, 이때 임시 회원 세션이 그대로 전달됩니다)
 
-**완료 통지는 ① 브릿지 → ② (브릿지 미등록 시) `callbackURL` 리다이렉트 순으로 실행되며, SDK가 둘 다 처리합니다.**
-호스트는 `onResult`만 구현하면 되고, 두 경로가 모두 도착해도 결과는 **한 번만** 전달됩니다.
+**완료 통지는 `callbackURL` 리다이렉트 한 경로로만 전달됩니다.** 호스트는 `onResult`만 구현하면 되고,
+웹이 리다이렉트를 재시도해도 결과는 **한 번만** 전달됩니다.
 
 | 경로 | 형태 |
 |------|------|
-| 브릿지 | `window.webkit.messageHandlers.onVerificationComplete.postMessage(jsonString)` — 로그인용 `onLoginComplete`와 분리된 별도 메서드 |
-| 페이로드 | `{ "status": "certified" \| "cancelled" \| "error", "token": "<ssoToken, certified일 때만>" }` |
 | callbackURL | `<callbackURL>?status=certified\|cancelled\|error&code=<ssoToken>` |
+
+> ⚠️ **`onVerificationComplete` JS 브릿지는 제거됐습니다** (v2.x).
+> 웹이 브릿지 존재 여부로 "네이티브가 본인인증을 호스팅 중"인지 판단해 리다이렉트를 생략했기 때문에,
+> **웹이 자체적으로 회원가입 → 본인인증까지 이어가는 흐름이 인증 완료 직후 멈추는 문제**가 있었습니다.
+> 이제 통지 경로가 리다이렉트 하나뿐이라 인증이 중간 단계든 종착점이든 동일하게 동작합니다.
+> 웹은 브릿지 유무와 무관하게 **항상 `callbackURL`로 리다이렉트**하면 됩니다.
 
 | `status` | 의미 | `onResult` |
 |----------|------|------------|
@@ -618,16 +625,16 @@ func gateVerification() async {
 }
 ```
 
-> 웹 브릿지(`onVerificationComplete`)를 우선 사용하므로 위 예시들처럼 `callbackURL`을 생략해도 결과가 전달됩니다.
-> 브릿지가 없는 웹 환경을 대비해 콜백 URL 방식을 함께 쓰려면 `callbackURL`만 넘기면 됩니다. **처리 코드는 동일하며**,
-> SDK가 `<callbackURL>?status=...&code=<ssoToken>` 리다이렉트를 가로채 같은 `onResult`로 전달합니다.
+> `callbackURL`은 기본값이 `appCallbackURL`이라 위 예시처럼 생략해도 됩니다.
+> SDK가 `<callbackURL>?status=...&code=<ssoToken>` 리다이렉트를 가로채 `onResult`로 전달합니다.
+> **`nil`을 명시하면 결과를 받을 경로가 없어져 `onResult`가 호출되지 않으니 주의하세요.**
 >
 > ```swift
 > IdentityVerificationView(
 >     accessToken: myAccessToken,
->     callbackURL: "https://estoneid.com/auth/app-callback"
+>     callbackURL: "https://estoneid.com/auth/app-callback"  // 기본값과 동일
 > ) { result in
->     // 브릿지로 오든 callbackURL로 오든 결과 처리는 동일
+>     // ...
 > }
 > ```
 
@@ -640,7 +647,7 @@ func gateVerification() async {
 | 인증 화면 제공 | `IdentityVerificationView` / `IdentityVerificationViewController` (SDK) |
 | 화면 띄우기/닫기 | **호스트** (sheet/cover/present, dismiss도 호스트) |
 | 토큰 | **호스트가 주입** (SDK 미보관) |
-| 완료 통지 수신 | **SDK** (브릿지 + callbackURL 둘 다 처리, 결과는 1회만 전달) |
+| 완료 통지 수신 | **SDK** (`callbackURL` 리다이렉트를 가로채 전달, 결과는 1회만) |
 | 결과 | `Result<VerificationResult, AuthError>` |
 | `certified` 후속 처리 | **호스트** (재발급된 ssoToken으로 세션 재수립) |
 

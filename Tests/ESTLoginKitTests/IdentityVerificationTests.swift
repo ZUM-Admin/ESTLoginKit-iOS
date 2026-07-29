@@ -56,36 +56,6 @@ struct VerificationResultMappingTests {
     }
 }
 
-// MARK: - 브릿지 페이로드 디코딩
-
-@Suite("VerificationCompletePayload 디코딩")
-struct VerificationCompletePayloadTests {
-
-    private func decode(_ json: String) throws -> VerificationCompletePayload {
-        try JSONDecoder.instance.decode(VerificationCompletePayload.self, from: Data(json.utf8))
-    }
-
-    @Test("certified 페이로드")
-    func decodesCertified() throws {
-        let dto = try decode(#"{"status":"certified","token":"sso_abc"}"#)
-        #expect(dto.status == "certified")
-        #expect(dto.token == "sso_abc")
-    }
-
-    @Test("token 없는 cancelled 페이로드")
-    func decodesCancelledWithoutToken() throws {
-        let dto = try decode(#"{"status":"cancelled"}"#)
-        #expect(dto.status == "cancelled")
-        #expect(dto.token == nil)
-    }
-
-    @Test("문서에 없는 status도 디코딩은 성공 (해석은 매핑 단계에서)")
-    func decodesUnknownStatus() throws {
-        let dto = try decode(#"{"status":"whatever"}"#)
-        #expect(dto.status == "whatever")
-    }
-}
-
 // MARK: - 본인인증 화면 URL
 
 @Suite("verificationURL")
