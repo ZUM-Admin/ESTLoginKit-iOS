@@ -32,7 +32,13 @@ public final actor ESTLoginManager {
     }
   }
 
-  public func initialize(with config: ESTLoginConfiguration) {
+  /// SDK를 초기화한다.
+  ///
+  /// 내부 작업이 모두 동기이고 `configuration`은 액터 격리가 아니라 락으로 보호되므로
+  /// **nonisolated**로 노출한다. 덕분에 `didFinishLaunching` 같은 동기 진입점에서 `Task` 없이
+  /// 바로 호출할 수 있고, 초기화 완료 전에 `loginURL()` 등이 불려 크래시하는 경합이 생기지 않는다.
+  /// (Android `EstLoginManager.initialize`도 동기 함수라 동작이 대칭이 된다)
+  public nonisolated func initialize(with config: ESTLoginConfiguration) {
     Self.configuration = config
 
     if let kakaoConfig = config.kakaoConfig {
@@ -132,10 +138,11 @@ public final actor ESTLoginManager {
   /// 본인인증 화면 URL을 생성합니다.
   ///
   /// 웹뷰가 임시 회원의 로그인 세션 쿠키를 갖고 있어야 하며, 인증 회원 승격과 CI 충돌 해소는
-  /// 웹뷰가 자체 처리합니다. 완료 통지는 브릿지(`onVerificationComplete`)가 우선이고,
-  /// 브릿지가 없을 때만 `callbackURL`로 리다이렉트되므로 둘 중 하나만 처리하면 됩니다.
+  /// 웹뷰가 자체 처리합니다. 완료 통지는 `callbackURL` 리다이렉트로만 전달됩니다.
   ///
-  /// - Parameter callbackURL: 브릿지 미등록 시 리다이렉트될 앱 콜백 URL. (선택)
+  /// - Parameter callbackURL: 완료 시 리다이렉트될 앱 콜백 URL.
+  ///   **생략하면 결과를 받을 경로가 없습니다** — 화면이 인증 흐름의 종착점이면 반드시 지정하세요.
+  ///   (웹이 자체적으로 다음 단계로 이어가는 흐름이라면 웹이 지정한 콜백을 그대로 씁니다)
   public nonisolated func verificationURL(callbackURL: String? = nil) -> URL {
     guard let clientId = Self.configuration?.clientId else {
       fatalError("[ESTLoginKit] verificationURL requires initialize() to be called first")

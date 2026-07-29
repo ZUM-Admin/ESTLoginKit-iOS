@@ -32,9 +32,7 @@ struct ESTLoginKit_iOS_ExampleApp: App {
       ))
       .build()
 
-    Task {
-      await ESTLoginManager.shared.initialize(with: config)
-    }
+    ESTLoginManager.shared.initialize(with: config)
   }
 
   var body: some Scene {
