@@ -1,5 +1,5 @@
 //
-//  IdentityVerificationView.swift
+//  VerificationView.swift
 //  ESTLoginKit
 //
 //  본인인증 진입용 SwiftUI 뷰.
@@ -21,14 +21,14 @@ import WebKit
 ///
 /// ```swift
 /// .sheet(isPresented: $showVerification) {
-///   IdentityVerificationView(accessToken: accessToken) { result in
+///   VerificationView(accessToken: accessToken) { result in
 ///     showVerification = false
 ///     if case .success(let v) = result { /* v.token으로 세션 재수립 */ }
 ///   }
 ///   .ignoresSafeArea()
 /// }
 /// ```
-public struct IdentityVerificationView: View {
+public struct VerificationView: View {
 
   private enum Source {
     /// 열 때마다 ssoToken을 새로 발급해 부트스트랩 (권장)
@@ -87,28 +87,6 @@ public struct IdentityVerificationView: View {
     self.onResult = onResult
   }
 
-  /// 세션 쿠키가 살아있을 때 URL로 직접 여는 경우. 쿠키가 없으면 로그인 화면이 뜨므로
-  /// 일반적으로는 `init(accessToken:)`을 사용하세요.
-  ///
-  /// - Parameter url: 기본값은 `verificationURL(callbackURL:)`. 직접 넘기면 `callbackURL` 조합을 대체합니다.
-  public init(
-    url: URL? = nil,
-    callbackURL: String? = ESTLoginManager.shared.appCallbackURL,
-    externalUserAgent: String? = nil,
-    inspectable: Bool = false,
-    onWebViewCreated: ((WKWebView) -> Void)? = nil,
-    onResult: @escaping (Result<VerificationResult, AuthError>) -> Void
-  ) {
-    self.init(
-      request: URLRequest(url: url ?? ESTLoginManager.shared.verificationURL(callbackURL: callbackURL)),
-      callbackURL: callbackURL,
-      externalUserAgent: externalUserAgent,
-      inspectable: inspectable,
-      onWebViewCreated: onWebViewCreated,
-      onResult: onResult
-    )
-  }
-
   public var body: some View {
     switch source {
     case .request(let request):
@@ -125,7 +103,7 @@ public struct IdentityVerificationView: View {
   }
 
   private func webView(_ request: URLRequest) -> some View {
-    IdentityVerificationRepresentable(
+    VerificationRepresentable(
       request: request,
       callbackURL: callbackURL,
       externalUserAgent: externalUserAgent,
@@ -153,7 +131,7 @@ public struct IdentityVerificationView: View {
 
 // MARK: - Representable
 
-private struct IdentityVerificationRepresentable: UIViewControllerRepresentable {
+private struct VerificationRepresentable: UIViewControllerRepresentable {
 
   let request: URLRequest
   let callbackURL: String?
@@ -162,8 +140,8 @@ private struct IdentityVerificationRepresentable: UIViewControllerRepresentable 
   let onWebViewCreated: ((WKWebView) -> Void)?
   let onResult: (Result<VerificationResult, AuthError>) -> Void
 
-  func makeUIViewController(context: Context) -> ESTOneWebViewController {
-    ESTOneWebViewController(
+  func makeUIViewController(context: Context) -> WebViewController {
+    WebViewController(
       request: request,
       callbackURL: callbackURL,
       externalUserAgent: externalUserAgent,
@@ -173,9 +151,9 @@ private struct IdentityVerificationRepresentable: UIViewControllerRepresentable 
     )
   }
 
-  func updateUIViewController(_ uiViewController: ESTOneWebViewController, context: Context) {}
+  func updateUIViewController(_ uiViewController: WebViewController, context: Context) {}
 
-  static func dismantleUIViewController(_ uiViewController: ESTOneWebViewController, coordinator: ()) {
+  static func dismantleUIViewController(_ uiViewController: WebViewController, coordinator: ()) {
     uiViewController.teardown()
   }
 }

@@ -105,7 +105,7 @@ public final actor ESTLoginManager {
   }
 
   /// 앱 콜백 기본 URL. `loginURL()`의 redirect_url 기본값이자,
-  /// `LoginWebView`/`IdentityVerificationView` 등의 `callbackURL` 기본값으로 사용된다.
+  /// `LoginWebView`/`VerificationView` 등의 `callbackURL` 기본값으로 사용된다.
   public nonisolated var appCallbackURL: String {
     "\(Self.baseURL)/auth/app-callback"
   }

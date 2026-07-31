@@ -1,5 +1,5 @@
 //
-//  ESTOneWebViewController.swift
+//  WebViewController.swift
 //  ESTLoginKit
 //
 //  Created by ESTAID on 2/25/26.
@@ -8,7 +8,7 @@
 import UIKit
 import WebKit
 
-public final class ESTOneWebViewController: UIViewController {
+final class WebViewController: UIViewController {
   private let request: URLRequest
   private let callbackURL: String?
   private let externalUserAgent: String?
@@ -30,7 +30,7 @@ public final class ESTOneWebViewController: UIViewController {
   // 웹이 리다이렉트를 재시도해 callbackURL이 여러 번 매칭돼도 중복 전달되지 않는다.
   private var hasCompleted = false
 
-  public convenience init(
+  convenience init(
     url: URL,
     callbackURL: String? = nil,
     externalUserAgent: String? = nil,
@@ -55,7 +55,7 @@ public final class ESTOneWebViewController: UIViewController {
   }
 
   /// SSO 부트스트랩처럼 커스텀 요청으로 첫 화면을 열어야 할 때 사용한다.
-  public init(
+  init(
     request: URLRequest,
     callbackURL: String? = nil,
     externalUserAgent: String? = nil,
@@ -106,7 +106,7 @@ public final class ESTOneWebViewController: UIViewController {
     fatalError("init(coder:) has not been implemented")
   }
 
-  public override func viewDidLoad() {
+  override func viewDidLoad() {
     super.viewDidLoad()
     registerMessageHandlers()
     setup()
@@ -144,7 +144,7 @@ public final class ESTOneWebViewController: UIViewController {
   /// SwiftUI 경로는 `dismantleUIViewController`에서 자동 호출한다.
   /// UIKit에서 이 컨트롤러를 직접 present/push해 쓰는 경우, `onWebViewCreated`로
   /// webView를 강참조하는 브릿지(예: Hackle)를 붙였다면 화면을 닫을 때 직접 호출해 순환을 끊어야 한다.
-  public func teardown() {
+  func teardown() {
     WebViewMessage.allCases.forEach {
       webView.configuration.userContentController.removeScriptMessageHandler(forName: $0.rawValue)
     }
@@ -227,8 +227,8 @@ public final class ESTOneWebViewController: UIViewController {
 
 // MARK: - WKNavigationDelegate
 
-extension ESTOneWebViewController: WKNavigationDelegate {
-  public func webView(
+extension WebViewController: WKNavigationDelegate {
+  func webView(
     _ webView: WKWebView,
     decidePolicyFor navigationAction: WKNavigationAction,
     decisionHandler: @escaping @MainActor (WKNavigationActionPolicy) -> Void
@@ -299,19 +299,19 @@ extension ESTOneWebViewController: WKNavigationDelegate {
     decisionHandler(.allow)
   }
 
-  public func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+  func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
     ESTLog.debug("didStartProvisionalNavigation")
   }
 
-  public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+  func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
     ESTLog.debug("didFinish — \(webView.url?.redactedForLog ?? "")")
   }
 
-  public func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+  func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
     ESTLog.error("didFail — \(error)")
   }
 
-  public func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+  func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
     ESTLog.error("didFailProvisionalNavigation — \(error)")
   }
 }
@@ -319,8 +319,8 @@ extension ESTOneWebViewController: WKNavigationDelegate {
 
 // MARK: - WKScriptMessageHandler
 
-extension ESTOneWebViewController: WKScriptMessageHandler {
-  public func userContentController(
+extension WebViewController: WKScriptMessageHandler {
+  func userContentController(
     _ userContentController: WKUserContentController,
     didReceive message: WKScriptMessage
   ) {
@@ -365,7 +365,7 @@ extension ESTOneWebViewController: WKScriptMessageHandler {
       break
 
     case .requestSnsLogin:
-      guard let loginDTO = payload as? RequestLoginDTO,
+      guard let loginDTO = payload as? SNSLoginRequestPayload,
             let platform = LoginPlatform(rawValue: loginDTO.provider.rawValue)
       else {
         ESTLog.debug("requestSnsLogin — invalid payload")
@@ -426,8 +426,8 @@ extension ESTOneWebViewController: WKScriptMessageHandler {
 // Google OAuth는 embedded browser 판정을 위해 JS dialog / window.open 같은
 // 표준 브라우저 기능이 살아있는지 본다. uiDelegate 없이 두면 전부 무시돼
 // "브라우저 또는 앱이 안전하지 않을 수 있습니다"로 이어질 수 있음.
-extension ESTOneWebViewController: WKUIDelegate {
-  public func webView(
+extension WebViewController: WKUIDelegate {
+  func webView(
     _ webView: WKWebView,
     createWebViewWith configuration: WKWebViewConfiguration,
     for navigationAction: WKNavigationAction,
@@ -440,7 +440,7 @@ extension ESTOneWebViewController: WKUIDelegate {
     return nil
   }
 
-  public func webView(
+  func webView(
     _ webView: WKWebView,
     runJavaScriptAlertPanelWithMessage message: String,
     initiatedByFrame frame: WKFrameInfo,
@@ -451,7 +451,7 @@ extension ESTOneWebViewController: WKUIDelegate {
     present(alert, animated: true)
   }
 
-  public func webView(
+  func webView(
     _ webView: WKWebView,
     runJavaScriptConfirmPanelWithMessage message: String,
     initiatedByFrame frame: WKFrameInfo,
@@ -463,7 +463,7 @@ extension ESTOneWebViewController: WKUIDelegate {
     present(alert, animated: true)
   }
 
-  public func webView(
+  func webView(
     _ webView: WKWebView,
     runJavaScriptTextInputPanelWithPrompt prompt: String,
     defaultText: String?,

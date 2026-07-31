@@ -1,5 +1,5 @@
 //
-//  IdentityVerificationViewController.swift
+//  VerificationViewController.swift
 //  ESTLoginKit
 //
 //  본인인증 진입용 UIKit 컨트롤러.
@@ -10,18 +10,18 @@ import WebKit
 
 /// 본인인증 화면. (UIKit)
 ///
-/// `IdentityVerificationView`(SwiftUI)와 동일한 동작을 하며, 화면을 띄우고 닫는 것은 호스트 책임입니다.
+/// `VerificationView`(SwiftUI)와 동일한 동작을 하며, 화면을 띄우고 닫는 것은 호스트 책임입니다.
 /// 유효한 accessToken만 넘기면 SDK가 ssoToken 발급 → SSO 부트스트랩 → 본인인증 진입까지 처리하고,
 /// 발급 실패 시 `onResult`로 `.failure`가 전달됩니다.
 ///
 /// ```swift
-/// let vc = IdentityVerificationViewController(accessToken: accessToken) { [weak self] result in
+/// let vc = VerificationViewController(accessToken: accessToken) { [weak self] result in
 ///   self?.dismiss(animated: true)
 ///   if case .success(let v) = result { /* v.token으로 세션 재수립 */ }
 /// }
 /// present(UINavigationController(rootViewController: vc), animated: true)
 /// ```
-public final class IdentityVerificationViewController: UIViewController {
+public final class VerificationViewController: UIViewController {
 
   private enum Source {
     /// 열 때마다 ssoToken을 새로 발급해 부트스트랩 (권장)
@@ -37,7 +37,7 @@ public final class IdentityVerificationViewController: UIViewController {
   private let onWebViewCreated: ((WKWebView) -> Void)?
   private let onResult: (Result<VerificationResult, AuthError>) -> Void
 
-  private var webViewController: ESTOneWebViewController?
+  private var webViewController: WebViewController?
 
   /// 권장 진입점. 유효한 accessToken을 넘기면 열 때마다 ssoToken을 새로 발급해 웹 세션을 수립한다.
   ///
@@ -80,28 +80,6 @@ public final class IdentityVerificationViewController: UIViewController {
     self.onWebViewCreated = onWebViewCreated
     self.onResult = onResult
     super.init(nibName: nil, bundle: nil)
-  }
-
-  /// 세션 쿠키가 살아있을 때 URL로 직접 여는 경우. 쿠키가 없으면 로그인 화면이 뜨므로
-  /// 일반적으로는 `init(accessToken:)`을 사용하세요.
-  ///
-  /// - Parameter url: 기본값은 `verificationURL(callbackURL:)`. 직접 넘기면 `callbackURL` 조합을 대체합니다.
-  public convenience init(
-    url: URL? = nil,
-    callbackURL: String? = ESTLoginManager.shared.appCallbackURL,
-    externalUserAgent: String? = nil,
-    inspectable: Bool = false,
-    onWebViewCreated: ((WKWebView) -> Void)? = nil,
-    onResult: @escaping (Result<VerificationResult, AuthError>) -> Void
-  ) {
-    self.init(
-      request: URLRequest(url: url ?? ESTLoginManager.shared.verificationURL(callbackURL: callbackURL)),
-      callbackURL: callbackURL,
-      externalUserAgent: externalUserAgent,
-      inspectable: inspectable,
-      onWebViewCreated: onWebViewCreated,
-      onResult: onResult
-    )
   }
 
   required init?(coder: NSCoder) {
@@ -150,7 +128,7 @@ public final class IdentityVerificationViewController: UIViewController {
   }
 
   private func embedWebViewController(request: URLRequest) {
-    let webViewController = ESTOneWebViewController(
+    let webViewController = WebViewController(
       request: request,
       callbackURL: callbackURL,
       externalUserAgent: externalUserAgent,

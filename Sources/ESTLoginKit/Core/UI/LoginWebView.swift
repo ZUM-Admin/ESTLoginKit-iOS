@@ -168,8 +168,8 @@ private struct LoginWebRepresentable: UIViewControllerRepresentable {
   let onAccountDeleted: (() -> Void)?
   let completion: ((String?) -> Void)?
 
-  func makeUIViewController(context: Context) -> ESTOneWebViewController {
-    ESTOneWebViewController(
+  func makeUIViewController(context: Context) -> WebViewController {
+    WebViewController(
       request: request,
       callbackURL: callbackURL,
       externalUserAgent: externalUserAgent,
@@ -181,9 +181,9 @@ private struct LoginWebRepresentable: UIViewControllerRepresentable {
     )
   }
 
-  func updateUIViewController(_ uiViewController: ESTOneWebViewController, context: Context) {}
+  func updateUIViewController(_ uiViewController: WebViewController, context: Context) {}
 
-  static func dismantleUIViewController(_ uiViewController: ESTOneWebViewController, coordinator: ()) {
+  static func dismantleUIViewController(_ uiViewController: WebViewController, coordinator: ()) {
     uiViewController.teardown()
   }
 }

@@ -16,7 +16,7 @@ enum WebViewMessage: String, CaseIterable {
   func decode(from data: Data) -> Decodable? {
     switch self {
     case .requestSnsLogin:
-      return try? JSONDecoder.instance.decode(RequestLoginDTO.self, from: data)
+      return try? JSONDecoder.instance.decode(SNSLoginRequestPayload.self, from: data)
     case .onLoginComplete, .onPasswordChanged, .onAccountDeleted:
       // 현재는 관찰/통지용 — 별도 디코딩 불필요
       return nil

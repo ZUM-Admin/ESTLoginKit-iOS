@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  SNSLoginRequestPayload.swift
 //  ESTLoginKit
 //
 //  Created by ESTAID on 2/26/26.
@@ -7,12 +7,12 @@
 
 import Foundation
 
-struct RequestLoginDTO: Decodable {
+struct SNSLoginRequestPayload: Decodable {
   let type: String
   let provider: Provider
 }
 
-extension RequestLoginDTO {
+extension SNSLoginRequestPayload {
   enum Provider: String, Decodable {
     case kakao, naver
   }

@@ -47,6 +47,7 @@ iOS 소셜 로그인 · 마이페이지 · **본인인증**을 간편하게 통�
 
 ```swift
 dependencies: [
+    // 버전은 예시입니다. 실제 배포된 최신 릴리스 태그로 교체하세요.
     .package(url: "https://github.com/ZUM-Internet/ESTLoginKit-iOS", from: "2.0.0")
 ]
 ```
@@ -95,7 +96,7 @@ SDK 통합 시 앱에서 직접 주입해야 하는 값 목록입니다. 값이 
 | `environment` | `Builder.useEnvironment(_:)` | `.production`(기본) / `.development` / `.test`. 웹·API host가 환경별로 함께 결정됨 |
 | `redirectURL` | `ESTLoginManager.shared.loginURL(redirectURL:)` | `{baseURL}/auth/app-callback` |
 | `state` | `ESTLoginManager.shared.loginURL(state:)` | 없음. ZUM 전용 state URL 매칭 흐름에서만 사용 |
-| `callbackURL` | `LoginWebView(callbackURL:)` / `ESTOneWebViewController(callbackURL:)` | `LoginWebView`는 `{baseURL}/auth/app-callback` 기본. 해당 URL로 리다이렉트되면 `code` 쿼리를 `ssoToken`으로 추출해 completion 호출. `nil` 명시 시 감지 비활성화 |
+| `callbackURL` | `LoginWebView(callbackURL:)` / `WebViewController(callbackURL:)` | `LoginWebView`는 `{baseURL}/auth/app-callback` 기본. 해당 URL로 리다이렉트되면 `code` 쿼리를 `ssoToken`으로 추출해 completion 호출. `nil` 명시 시 감지 비활성화 |
 | `externalUserAgent` | `LoginWebView(externalUserAgent:)` | nil. 커스텀 User-Agent가 필요한 경우 지정 |
 | `inspectable` | `LoginWebView(inspectable:)` | `false`. Safari Web Inspector 활성화 (iOS 16.4+) |
 
@@ -272,7 +273,7 @@ do {
 
 ### 웹뷰 로그인
 
-`LoginWebView`(SwiftUI) 또는 `ESTOneWebViewController`(UIKit)를 사용해 웹 기반 로그인을 구현할 수 있습니다.
+`LoginWebView`(SwiftUI) 또는 `WebViewController`(UIKit)를 사용해 웹 기반 로그인을 구현할 수 있습니다.
 
 웹뷰 로그인은 SSO 콜백 방식으로 동작하며, `completion` 클로저는 `(String?) -> Void` 타입입니다.
 
@@ -319,12 +320,15 @@ LoginWebView(
     callbackURL: String? = ESTLoginManager.shared.appCallbackURL,  // "{baseURL}/auth/app-callback"
     externalUserAgent: String? = nil,
     inspectable: Bool = false,
+    onWebViewCreated: ((WKWebView) -> Void)? = nil,
+    onPasswordChanged: (() -> Void)? = nil,
+    onAccountDeleted: (() -> Void)? = nil,
     completion: ((String?) -> Void)? = nil
 )
 ```
 
 > **dismiss는 호출부에서 처리해야 합니다.**
-> `LoginWebView` / `ESTOneWebViewController`는 화면 닫기를 직접 처리하지 않습니다.
+> `LoginWebView` / `WebViewController`는 화면 닫기를 직접 처리하지 않습니다.
 > push, modal, custom transition 등 표시 방식에 따라 `completion` 클로저 안에서 직접 dismiss/pop을 구현하세요.
 
 **SwiftUI**
@@ -341,10 +345,10 @@ LoginWebView(
 }
 ```
 
-**UIKit (modal)** — UIKit은 `ESTOneWebViewController`를 직접 사용하며, `callbackURL`을 명시해야 SSO 콜백이 감지됩니다.
+**UIKit (modal)** — UIKit은 `WebViewController`를 직접 사용하며, `callbackURL`을 명시해야 SSO 콜백이 감지됩니다.
 
 ```swift
-let vc = ESTOneWebViewController(
+let vc = WebViewController(
     url: ESTLoginManager.shared.loginURL(),
     callbackURL: ESTLoginManager.shared.appCallbackURL
 ) { [weak self] ssoToken in
@@ -359,7 +363,7 @@ present(vc, animated: true)
 **UIKit (push)**
 
 ```swift
-let vc = ESTOneWebViewController(
+let vc = WebViewController(
     url: ESTLoginManager.shared.loginURL(),
     callbackURL: ESTLoginManager.shared.appCallbackURL
 ) { [weak self] _ in
@@ -418,7 +422,7 @@ SDK가 ssoToken 발급 → SSO 부트스트랩 → 마이페이지 진입까지 
 
 ```swift
 let request = try await ESTLoginManager.shared.authorizedMypageRequest(accessToken: accessToken)
-let vc = ESTOneWebViewController(request: request)
+let vc = WebViewController(request: request)
 present(vc, animated: true)
 ```
 
@@ -455,7 +459,7 @@ let accessToken = await tokenStore.validAccessToken()
 
 // 뷰에 accessToken만 넘기면 발급→부트스트랩→진입까지 SDK가 처리 (여는 시점마다 새로 발급)
 MyPageWebView(accessToken: accessToken, onError: { _ in ... })
-IdentityVerificationView(accessToken: accessToken) { result in ... }
+VerificationView(accessToken: accessToken) { result in ... }
 
 // 요청을 직접 만들어야 하면 (UIKit 등)
 let mypageRequest = try await ESTLoginManager.shared.authorizedMypageRequest(accessToken: accessToken)
@@ -516,7 +520,7 @@ public struct VerificationResult {
 }
 
 // SwiftUI — 권장 진입점
-public struct IdentityVerificationView: View {
+public struct VerificationView: View {
     public init(
         accessToken: String,          // 만료 판단·갱신은 앱 책임. 만료면 .failure(.server(statusCode: 401))
         callbackURL: String? = ESTLoginManager.shared.appCallbackURL,
@@ -525,15 +529,11 @@ public struct IdentityVerificationView: View {
         onWebViewCreated: ((WKWebView) -> Void)? = nil,
         onResult: @escaping (Result<VerificationResult, AuthError>) -> Void
     )
-
-    // 세션 쿠키가 살아있을 때의 직접 진입 — url 생략 시 verificationURL(callbackURL:) 사용
-    public init(url: URL? = nil, callbackURL: String? = ..., onResult: ...)
 }
 
-// UIKit — 동일한 진입점 구성 (accessToken / request / url)
-public final class IdentityVerificationViewController: UIViewController {
+// UIKit — 동일한 진입점 구성 (accessToken / request)
+public final class VerificationViewController: UIViewController {
     public init(accessToken: String, callbackURL: String? = ..., onResult: ...)
-    public init(url: URL? = nil, callbackURL: String? = ..., onResult: ...)
 }
 ```
 
@@ -544,7 +544,6 @@ public final class IdentityVerificationViewController: UIViewController {
 ```
 
 인증 회원 승격과 CI 충돌 해소는 웹뷰가 자체 처리합니다.
-(세션 쿠키가 살아있으면 `url:` 직접 진입도 가능하며, 이때 임시 회원 세션이 그대로 전달됩니다)
 
 **완료 통지는 `callbackURL` 리다이렉트 한 경로로만 전달됩니다.** 호스트는 `onResult`만 구현하면 되고,
 웹이 리다이렉트를 재시도해도 결과는 **한 번만** 전달됩니다.
@@ -583,7 +582,7 @@ struct CheckoutButton: View {
             Task { await gateVerification() }
         }
         .sheet(isPresented: $showVerification) {
-            IdentityVerificationView(accessToken: myAccessToken) { result in
+            VerificationView(accessToken: myAccessToken) { result in
                 showVerification = false
                 switch result {
                 case .success(let v): proceedCheckout(verificationToken: v.token)
@@ -617,7 +616,7 @@ func gateVerification() async {
     let status = try? await ESTLoginManager.shared.verificationStatus(accessToken: myAccessToken)
     guard status?.isVerified != true else { proceedCheckout(); return }
 
-    let vc = IdentityVerificationViewController(accessToken: myAccessToken) { [weak self] result in
+    let vc = VerificationViewController(accessToken: myAccessToken) { [weak self] result in
         self?.dismiss(animated: true)
         if case .success(let v) = result { self?.proceedCheckout(verificationToken: v.token) }
     }
@@ -630,7 +629,7 @@ func gateVerification() async {
 > **`nil`을 명시하면 결과를 받을 경로가 없어져 `onResult`가 호출되지 않으니 주의하세요.**
 >
 > ```swift
-> IdentityVerificationView(
+> VerificationView(
 >     accessToken: myAccessToken,
 >     callbackURL: "https://estoneid.com/auth/app-callback"  // 기본값과 동일
 > ) { result in
@@ -644,7 +643,7 @@ func gateVerification() async {
 |------|------|
 | 본인인증 트리거(언제 띄울지) | **호스트** (결제 직전 등 비즈니스 시점) |
 | 인증 여부 조회 | `verificationStatus(accessToken:)` (SDK) |
-| 인증 화면 제공 | `IdentityVerificationView` / `IdentityVerificationViewController` (SDK) |
+| 인증 화면 제공 | `VerificationView` / `VerificationViewController` (SDK) |
 | 화면 띄우기/닫기 | **호스트** (sheet/cover/present, dismiss도 호스트) |
 | 토큰 | **호스트가 주입** (SDK 미보관) |
 | 완료 통지 수신 | **SDK** (`callbackURL` 리다이렉트를 가로채 전달, 결과는 1회만) |
@@ -669,7 +668,7 @@ public enum AuthError: Error {
 - 본인인증 화면(`onResult`)은 사용자 취소 시 `.failure(.cancelled)`, 승격/병합 실패 시 `.failure(.verificationFailed)`로 전달됩니다.
 
 > **웹뷰 로그인의 completion**
-> `LoginWebView` / `ESTOneWebViewController`의 `completion` 콜백은 `(String?) -> Void` 이며 에러를 던지지 않습니다.
+> `LoginWebView` / `WebViewController`의 `completion` 콜백은 `(String?) -> Void` 이며 에러를 던지지 않습니다.
 > - `ssoToken`이 **non-nil**: `callbackURL`에서 `code` 쿼리 추출에 성공.
 > - `ssoToken`이 **nil**: 초기 URL의 `state` 파라미터와 매칭되는 URL로 이동한 경우(ZUM 전용 흐름). 일반적인 경우 `callbackURL`을 전달해 non-nil 케이스로 성공을 판정하세요.
 

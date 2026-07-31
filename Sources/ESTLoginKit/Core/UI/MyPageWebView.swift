@@ -158,8 +158,8 @@ private struct MyPageWebRepresentable: UIViewControllerRepresentable {
   let onPasswordChanged: (() -> Void)?
   let onAccountDeleted: (() -> Void)?
 
-  func makeUIViewController(context: Context) -> ESTOneWebViewController {
-    ESTOneWebViewController(
+  func makeUIViewController(context: Context) -> WebViewController {
+    WebViewController(
       request: request,
       externalUserAgent: externalUserAgent,
       inspectable: inspectable,
@@ -169,9 +169,9 @@ private struct MyPageWebRepresentable: UIViewControllerRepresentable {
     )
   }
 
-  func updateUIViewController(_ uiViewController: ESTOneWebViewController, context: Context) {}
+  func updateUIViewController(_ uiViewController: WebViewController, context: Context) {}
 
-  static func dismantleUIViewController(_ uiViewController: ESTOneWebViewController, coordinator: ()) {
+  static func dismantleUIViewController(_ uiViewController: WebViewController, coordinator: ()) {
     uiViewController.teardown()
   }
 }

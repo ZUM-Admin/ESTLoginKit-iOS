@@ -2,14 +2,14 @@ import Testing
 import Foundation
 @testable import ESTLoginKit
 
-// MARK: - RequestLoginDTO
+// MARK: - SNSLoginRequestPayload
 
-@Suite("RequestLoginDTO")
-struct RequestLoginDTOTests {
+@Suite("SNSLoginRequestPayload")
+struct SNSLoginRequestPayloadTests {
 
-    private func decode(_ json: String) -> RequestLoginDTO? {
+    private func decode(_ json: String) -> SNSLoginRequestPayload? {
         guard let data = json.data(using: .utf8) else { return nil }
-        return try? JSONDecoder().decode(RequestLoginDTO.self, from: data)
+        return try? JSONDecoder().decode(SNSLoginRequestPayload.self, from: data)
     }
 
     @Test("유효한 JSON 디코딩")
@@ -22,7 +22,7 @@ struct RequestLoginDTOTests {
 
     @Test("모든 provider 디코딩")
     func decodesAllProviders() {
-        let cases: [(String, RequestLoginDTO.Provider)] = [
+        let cases: [(String, SNSLoginRequestPayload.Provider)] = [
             ("kakao", .kakao),
             ("naver", .naver)
         ]

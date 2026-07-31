@@ -113,7 +113,7 @@ struct ContentView: View {
 
       case .verification:
         if let accessToken = sheet.accessToken {
-          IdentityVerificationView(accessToken: accessToken, inspectable: true) { result in
+          VerificationView(accessToken: accessToken, inspectable: true) { result in
             switch result {
             case .success(let verification):
               statusMessage = "본인인증 성공: \(verification)"

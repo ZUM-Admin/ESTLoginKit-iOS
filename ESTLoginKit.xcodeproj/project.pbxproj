@@ -11,15 +11,15 @@
 		118EA2F81E25FFFE5B4AA5BF /* MyPageWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8780495EC28EB16F9E2B87B3 /* MyPageWebView.swift */; };
 		239BE044F3BE8BF14BB93670 /* LoginWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13BAF460CE0412B1E0874BCD /* LoginWebView.swift */; };
 		2529DEBCF9F770A9EFA7045F /* SSOToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = E983BA4A872589E46CD494D1 /* SSOToken.swift */; };
-		293AFC9F3846352679AF42FF /* RequestLoginDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = F090432930CB6A6BE7CD581A /* RequestLoginDTO.swift */; };
+		293AFC9F3846352679AF42FF /* SNSLoginRequestPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = F090432930CB6A6BE7CD581A /* SNSLoginRequestPayload.swift */; };
 		2A1E4A9B0059D1276201411F /* JSONDecoder+.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DB4B21CD71B47EF1C54EA35 /* JSONDecoder+.swift */; };
 		338C6CF4FEE892A3617F9B8A /* KakaoConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 880D0102DF0812738555880F /* KakaoConfiguration.swift */; };
-		34CEB00A0984EBEE593527B7 /* ESTOneWebViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E39CDAA5CB6DBB7973ABB76C /* ESTOneWebViewController.swift */; };
+		34CEB00A0984EBEE593527B7 /* WebViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E39CDAA5CB6DBB7973ABB76C /* WebViewController.swift */; };
 		478B2B6DEE6410483D508DCD /* ESTLoginConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F6EC2870B3CC74846A0E5A5 /* ESTLoginConfiguration.swift */; };
 		4C2D8308F2B3BF6E56A329DD /* SSOTokenResponseDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 936D053D7E15A2BD4D32B549 /* SSOTokenResponseDTO.swift */; };
 		4C84E6D0BFC5275CE2050939 /* SNSLoginSuccessPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 492BD9275E1F01FD29E5A843 /* SNSLoginSuccessPayload.swift */; };
 		52AA8646ADDF2CB62FA36EB2 /* LeakAvoider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A30823091D9CD17D6CAB1A6C /* LeakAvoider.swift */; };
-		55A17B1EFCBE55AC832E2BCF /* IdentityVerificationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3263ABBE4456E78C36C2D9D1 /* IdentityVerificationView.swift */; };
+		55A17B1EFCBE55AC832E2BCF /* VerificationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3263ABBE4456E78C36C2D9D1 /* VerificationView.swift */; };
 		582F27908034A3916D29C663 /* ESTEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68B6056856B779796906C6F2 /* ESTEnvironment.swift */; };
 		593042C6A92585ABAFC3902E /* LoginPlatform.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABA49D44B404F5E99277D58A /* LoginPlatform.swift */; };
 		5EF75CE39B70F2200F852176 /* NaverAuthProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32C59065C818BCD596761114 /* NaverAuthProvider.swift */; };
@@ -33,7 +33,7 @@
 		B7E191D4EEC9F61C0BCCD068 /* KakaoSDKAuth.framework in Dependencies */ = {isa = PBXBuildFile; fileRef = EE3AB6806A0F39A5CA3886AB /* KakaoSDKAuth.framework */; };
 		C26429C590E3EB086A6236A2 /* VerificationResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109B702F181E700048FE3E41 /* VerificationResult.swift */; };
 		C3205F87C584810D22FE28EA /* AuthResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD54FFDF5E3736A7C3E64E2C /* AuthResult.swift */; };
-		C504F22ACF6D9D0223535C74 /* IdentityVerificationViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C2070CEC1BDB19B60AD55B6 /* IdentityVerificationViewController.swift */; };
+		C504F22ACF6D9D0223535C74 /* VerificationViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C2070CEC1BDB19B60AD55B6 /* VerificationViewController.swift */; };
 		D0D9EF0FEE789EA16A2126C2 /* AuthError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97B95006B2A4CD682541F0D8 /* AuthError.swift */; };
 		D1C1B75AD6EA16D094A23AFD /* SNSLoginErrorPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0FAB440F2878EA8D5091B91 /* SNSLoginErrorPayload.swift */; };
 		D43080A1C6979DA5A1B7DF45 /* KakaoAuthProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B0694BE11719C3F7F6D4E9 /* KakaoAuthProvider.swift */; };
@@ -76,7 +76,7 @@
 		13BAF460CE0412B1E0874BCD /* LoginWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginWebView.swift; sourceTree = "<group>"; };
 		21413FAC78747CD20E3257CD /* NaverConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NaverConfiguration.swift; sourceTree = "<group>"; };
 		23942043569E7D61E3B3F65F /* KakaoSDKUser.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = KakaoSDKUser.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		3263ABBE4456E78C36C2D9D1 /* IdentityVerificationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdentityVerificationView.swift; sourceTree = "<group>"; };
+		3263ABBE4456E78C36C2D9D1 /* VerificationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerificationView.swift; sourceTree = "<group>"; };
 		32C59065C818BCD596761114 /* NaverAuthProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NaverAuthProvider.swift; sourceTree = "<group>"; };
 		3DB4B21CD71B47EF1C54EA35 /* JSONDecoder+.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "JSONDecoder+.swift"; sourceTree = "<group>"; };
 		492BD9275E1F01FD29E5A843 /* SNSLoginSuccessPayload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SNSLoginSuccessPayload.swift; sourceTree = "<group>"; };
@@ -86,7 +86,7 @@
 		68B6056856B779796906C6F2 /* ESTEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ESTEnvironment.swift; sourceTree = "<group>"; };
 		6AC71B678A255DAE7DF26F1C /* ESTLoginKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = ESTLoginKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		6FB9DD83DA5F09AE1111E1BB /* WebViewMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewMessage.swift; sourceTree = "<group>"; };
-		7C2070CEC1BDB19B60AD55B6 /* IdentityVerificationViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdentityVerificationViewController.swift; sourceTree = "<group>"; };
+		7C2070CEC1BDB19B60AD55B6 /* VerificationViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerificationViewController.swift; sourceTree = "<group>"; };
 		869C1C559A99E485B6DEA602 /* KakaoSDKCommon.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = KakaoSDKCommon.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		8780495EC28EB16F9E2B87B3 /* MyPageWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyPageWebView.swift; sourceTree = "<group>"; };
 		880D0102DF0812738555880F /* KakaoConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KakaoConfiguration.swift; sourceTree = "<group>"; };
@@ -102,11 +102,11 @@
 		DD54FFDF5E3736A7C3E64E2C /* AuthResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthResult.swift; sourceTree = "<group>"; };
 		DFE7BAD35876BA32E3211E05 /* CertificationStatusResponseDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CertificationStatusResponseDTO.swift; sourceTree = "<group>"; };
 		E0FAB440F2878EA8D5091B91 /* SNSLoginErrorPayload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SNSLoginErrorPayload.swift; sourceTree = "<group>"; };
-		E39CDAA5CB6DBB7973ABB76C /* ESTOneWebViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ESTOneWebViewController.swift; sourceTree = "<group>"; };
+		E39CDAA5CB6DBB7973ABB76C /* WebViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewController.swift; sourceTree = "<group>"; };
 		E49A18A2FE324FAE5BBB7063 /* NidThirdPartyLogin.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = NidThirdPartyLogin.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		E983BA4A872589E46CD494D1 /* SSOToken.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSOToken.swift; sourceTree = "<group>"; };
 		EE3AB6806A0F39A5CA3886AB /* KakaoSDKAuth.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = KakaoSDKAuth.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		F090432930CB6A6BE7CD581A /* RequestLoginDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RequestLoginDTO.swift; sourceTree = "<group>"; };
+		F090432930CB6A6BE7CD581A /* SNSLoginRequestPayload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SNSLoginRequestPayload.swift; sourceTree = "<group>"; };
 		FCF5F77772828D1B89B5C534 /* IdentityVerification.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdentityVerification.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -124,9 +124,9 @@
 		01E62EE2454346A077FA7A0F /* UI */ = {
 			isa = PBXGroup;
 			children = (
-				E39CDAA5CB6DBB7973ABB76C /* ESTOneWebViewController.swift */,
-				3263ABBE4456E78C36C2D9D1 /* IdentityVerificationView.swift */,
-				7C2070CEC1BDB19B60AD55B6 /* IdentityVerificationViewController.swift */,
+				E39CDAA5CB6DBB7973ABB76C /* WebViewController.swift */,
+				3263ABBE4456E78C36C2D9D1 /* VerificationView.swift */,
+				7C2070CEC1BDB19B60AD55B6 /* VerificationViewController.swift */,
 				A30823091D9CD17D6CAB1A6C /* LeakAvoider.swift */,
 				13BAF460CE0412B1E0874BCD /* LoginWebView.swift */,
 				8780495EC28EB16F9E2B87B3 /* MyPageWebView.swift */,
@@ -243,7 +243,7 @@
 			isa = PBXGroup;
 			children = (
 				DFE7BAD35876BA32E3211E05 /* CertificationStatusResponseDTO.swift */,
-				F090432930CB6A6BE7CD581A /* RequestLoginDTO.swift */,
+				F090432930CB6A6BE7CD581A /* SNSLoginRequestPayload.swift */,
 				E0FAB440F2878EA8D5091B91 /* SNSLoginErrorPayload.swift */,
 				492BD9275E1F01FD29E5A843 /* SNSLoginSuccessPayload.swift */,
 				936D053D7E15A2BD4D32B549 /* SSOTokenResponseDTO.swift */,
@@ -345,7 +345,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				AC2A131EB34BCE2B059698BE /* CertificationStatusResponseDTO.swift in Sources */,
-				293AFC9F3846352679AF42FF /* RequestLoginDTO.swift in Sources */,
+				293AFC9F3846352679AF42FF /* SNSLoginRequestPayload.swift in Sources */,
 				D1C1B75AD6EA16D094A23AFD /* SNSLoginErrorPayload.swift in Sources */,
 				4C84E6D0BFC5275CE2050939 /* SNSLoginSuccessPayload.swift in Sources */,
 				4C2D8308F2B3BF6E56A329DD /* SSOTokenResponseDTO.swift in Sources */,
@@ -364,9 +364,9 @@
 				D43080A1C6979DA5A1B7DF45 /* KakaoAuthProvider.swift in Sources */,
 				5EF75CE39B70F2200F852176 /* NaverAuthProvider.swift in Sources */,
 				2529DEBCF9F770A9EFA7045F /* SSOToken.swift in Sources */,
-				34CEB00A0984EBEE593527B7 /* ESTOneWebViewController.swift in Sources */,
-				55A17B1EFCBE55AC832E2BCF /* IdentityVerificationView.swift in Sources */,
-				C504F22ACF6D9D0223535C74 /* IdentityVerificationViewController.swift in Sources */,
+				34CEB00A0984EBEE593527B7 /* WebViewController.swift in Sources */,
+				55A17B1EFCBE55AC832E2BCF /* VerificationView.swift in Sources */,
+				C504F22ACF6D9D0223535C74 /* VerificationViewController.swift in Sources */,
 				52AA8646ADDF2CB62FA36EB2 /* LeakAvoider.swift in Sources */,
 				239BE044F3BE8BF14BB93670 /* LoginWebView.swift in Sources */,
 				118EA2F81E25FFFE5B4AA5BF /* MyPageWebView.swift in Sources */,

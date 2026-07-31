@@ -93,7 +93,7 @@ struct URLNonEmptyQueryValueTests {
     }
 }
 
-/// ESTOneWebViewController가 리다이렉트 체인에서 code를 캡처하는 규칙을 재현한다.
+/// WebViewController가 리다이렉트 체인에서 code를 캡처하는 규칙을 재현한다.
 /// (컨트롤러의 캡처 로직이 private이라 동일한 규칙을 여기서 검증한다.)
 @Suite("ssoToken 캡처 규칙")
 struct SSOTokenCaptureRuleTests {
