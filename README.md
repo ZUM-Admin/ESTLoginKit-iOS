@@ -48,7 +48,7 @@ iOS 소셜 로그인 · 마이페이지 · **본인인증**을 간편하게 통�
 ```swift
 dependencies: [
     // 버전은 예시입니다. 실제 배포된 최신 릴리스 태그로 교체하세요.
-    .package(url: "https://github.com/ZUM-Internet/ESTLoginKit-iOS", from: "2.0.0")
+    .package(url: "https://github.com/ZUM-Admin/ESTLoginKit-iOS", from: "2.0.0")
 ]
 ```
 
