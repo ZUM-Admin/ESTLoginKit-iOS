@@ -65,7 +65,7 @@ dependencies: [
 
 - 본인인증 화면을 **언제 띄울지(트리거)는 앱이 판단**합니다. SDK는 비즈니스 규칙을 갖지 않습니다.
 - 판단의 근거가 되는 **인증 여부는 SDK의 `verificationStatus(...)`로 조회**합니다.
-- 본인인증 **화면은 SDK가 제공**하고, **띄우기(present/sheet)는 앱이 담당**합니다. (SDK가 최상위 뷰를 찾아 present 하지 않습니다 — SwiftUI/UIKit 모두 자연스럽게 대응)
+- 본인인증 **화면은 SDK가 제공**하고, **띄우기(present/sheet)는 앱이 담당**합니다.
 
 ## 외부에서 주입해야 할 값
 
@@ -116,9 +116,6 @@ let config = ESTLoginConfiguration.Builder(clientId: "YOUR_CLIENT_ID")
 
 ESTLoginManager.shared.initialize(with: config)
 ```
-
-> `initialize`는 **동기 메서드**입니다(`await` 불필요). `didFinishLaunching`에서 `Task` 없이 바로 호출하세요.
-> `Task`로 감싸면 초기화가 끝나기 전에 `loginURL()` 등이 호출돼 크래시할 수 있습니다.
 
 #### 실행 환경 지정 (선택)
 
@@ -279,7 +276,7 @@ do {
 
 #### 로그인 URL 구성
 
-SDK에서 로그인 URL을 생성할 수 있습니다. `initialize()` 시 전달한 `clientId`가 자동으로 포함됩니다. URL 빌더는 동기 메서드입니다(`await` 불필요).
+SDK에서 로그인 URL을 생성할 수 있습니다. `initialize()` 시 전달한 `clientId`가 자동으로 포함됩니다. URL 빌더는 동기 메서드입니다.
 
 ```swift
 // 기본 (redirect_url = {baseURL}/auth/app-callback)
@@ -391,7 +388,7 @@ await ESTLoginManager.shared.logout()
 - `logout()`은 각 provider 정리 실패를 던지지 않고 로깅만 하므로 **throw하지 않습니다** (`try` 불필요).
 - 네이버/카카오 네이티브 토큰을 **각각 독립적으로(best-effort)** 삭제합니다. 한 provider 로그아웃이 실패해도 나머지 정리는 계속됩니다.
 - **웹 세션(쿠키/스토리지)은 SDK가 건드리지 않습니다** — 웹 세션은 웹이 소유하며, est 웹뷰는 열 때마다 accessToken 부트스트랩으로 세션을 새로 검증·수립하므로 앱 로그아웃 시 로컬 웹 데이터를 지울 필요가 없습니다.
-- 앱이 직접 저장한 accessToken/refreshToken(Keychain)은 **SDK가 보관하지 않으므로 호스트가 직접 삭제**해야 합니다. (SDK는 stateless)
+- 앱이 직접 저장한 accessToken/refreshToken(Keychain)은 **SDK가 보관하지 않으므로 호스트가 직접 삭제**해야 합니다. 
 
 > **네이버는 키체인에 토큰 정보를 저장합니다.**
 > 네이버 로그인 SDK는 인증 토큰을 기기의 키체인에 보관하므로, 로그아웃 시점에 반드시 `logout()`을 호출하여 저장된 토큰을 제거해야 합니다.
