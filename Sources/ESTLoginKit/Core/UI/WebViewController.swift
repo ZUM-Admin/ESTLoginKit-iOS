@@ -341,6 +341,14 @@ extension WebViewController: WKScriptMessageHandler {
       }
       handleAction(action, payload: dto)
 
+    case .requestLogout:
+      // "다른 계정으로 로그인" 등 — 웹이 네이티브 SNS SDK에 캐싱된 로그인 상태를 지워달라고 요청.
+      // 이게 없으면 다음 requestSnsLogin에서 카카오/네이버 SDK가 기존 토큰을 재사용해
+      // 계정 선택창 없이 같은 계정으로 조용히 로그인된다.
+      // 웹 세션 쿠키와 호스트 토큰은 건드리지 않는다(각자 책임).
+      ESTLog.debug("requestLogout")
+      Task { await ESTLoginManager.shared.logout() }
+
     case .onLoginComplete:
       // 관찰 전용 — 현재 별도 처리 없음 (dismiss/redirect 미구현)
       break
@@ -360,27 +368,41 @@ extension WebViewController: WKScriptMessageHandler {
 
   private func handleAction(_ action: WebViewMessage, payload: Decodable) {
     switch action {
-    case .onLoginComplete, .onPasswordChanged, .onAccountDeleted:
+    case .requestLogout, .onLoginComplete, .onPasswordChanged, .onAccountDeleted:
       // userContentController에서 직접 처리됨
       break
 
     case .requestSnsLogin:
-      guard let loginDTO = payload as? SNSLoginRequestPayload,
-            let platform = LoginPlatform(rawValue: loginDTO.provider.rawValue)
-      else {
+      guard let loginDTO = payload as? SNSLoginRequestPayload else {
         ESTLog.debug("requestSnsLogin — invalid payload")
         return
       }
 
-      ESTLog.debug("requestSnsLogin — provider: \(loginDTO.provider.rawValue)")
+      let provider = loginDTO.provider
+
+      // 구글/애플 등은 네이티브 미지원 → 웹 OAuth 경로를 써야 한다.
+      // 조용히 리턴하면 웹이 콜백을 무한정 기다리므로 반드시 에러로 통지한다. (Android와 동일)
+      guard let platform = loginDTO.platform else {
+        ESTLog.debug("requestSnsLogin — unsupported provider: \(provider)")
+        sendErrorResult(
+          SNSLoginErrorPayload(
+            code: "unsupported_provider",
+            message: "\(provider) native login is not supported. Use WebView OAuth path.",
+            provider: provider
+          )
+        )
+        return
+      }
+
+      ESTLog.debug("requestSnsLogin — provider: \(provider)")
 
       Task {
         do {
           let result = try await ESTLoginManager.shared.login(with: platform)
-          ESTLog.info("login success — provider: \(loginDTO.provider.rawValue)")
+          ESTLog.info("login success — provider: \(provider)")
           sendSuccessResult(
             SNSLoginSuccessPayload(
-              provider: loginDTO.provider.rawValue,
+              provider: provider,
               authorizeToken: result.authorizeToken,
               refreshToken: result.refreshToken,
               ci: result.ci,
@@ -388,12 +410,12 @@ extension WebViewController: WKScriptMessageHandler {
             )
           )
         } catch {
-          ESTLog.error("login failed — provider: \(loginDTO.provider.rawValue), error: \(error)")
+          ESTLog.error("login failed — provider: \(provider), error: \(error)")
           sendErrorResult(
             SNSLoginErrorPayload(
               code: errorCode(from: error),
               message: error.localizedDescription,
-              provider: loginDTO.provider.rawValue
+              provider: provider
             )
           )
         }
@@ -409,14 +431,28 @@ extension WebViewController: WKScriptMessageHandler {
   @MainActor
   private func sendSuccessResult(_ payload: SNSLoginSuccessPayload) {
     guard let json = payload.jsonString else { return }
-    webView?.evaluateJavaScript("window.onNativeSnsLoginResult(\(json))")
+    webView?.evaluateJavaScript(Self.callbackScript("onNativeSnsLoginResult", json))
   }
 
   @MainActor
   private func sendErrorResult(_ payload: SNSLoginErrorPayload) {
     guard let json = payload.jsonString else { return }
     ESTLog.error("sendErrorResult — \(json)")
-    webView?.evaluateJavaScript("window.onNativeSnsLoginError(\(json))")
+    webView?.evaluateJavaScript(Self.callbackScript("onNativeSnsLoginError", json))
+  }
+
+  /// 웹이 콜백을 아직 정의하지 않았을 때 JS 예외로 죽지 않고 경고만 남기도록 감싼다.
+  /// (Android `SnsLoginBridge.callbackScript` 와 동일한 형태)
+  private static func callbackScript(_ functionName: String, _ payload: String) -> String {
+    """
+    (function() {
+      if (typeof window.\(functionName) === "function") {
+        window.\(functionName)(\(payload));
+      } else {
+        console.warn("Missing window.\(functionName)");
+      }
+    })();
+    """
   }
 }
 

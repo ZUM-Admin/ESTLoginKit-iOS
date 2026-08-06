@@ -9,6 +9,7 @@ import Foundation
 
 enum WebViewMessage: String, CaseIterable {
   case requestSnsLogin
+  case requestLogout
   case onLoginComplete
   case onPasswordChanged
   case onAccountDeleted
@@ -17,8 +18,8 @@ enum WebViewMessage: String, CaseIterable {
     switch self {
     case .requestSnsLogin:
       return try? JSONDecoder.instance.decode(SNSLoginRequestPayload.self, from: data)
-    case .onLoginComplete, .onPasswordChanged, .onAccountDeleted:
-      // 현재는 관찰/통지용 — 별도 디코딩 불필요
+    case .requestLogout, .onLoginComplete, .onPasswordChanged, .onAccountDeleted:
+      // 페이로드 없음 — 인자 없는 동작 요청이거나 관찰/통지용
       return nil
     }
   }

@@ -647,6 +647,80 @@ func gateVerification() async {
 | 결과 | `Result<VerificationResult, AuthError>` |
 | `certified` 후속 처리 | **호스트** (재발급된 ssoToken으로 세션 재수립) |
 
+## JS 브릿지 프로토콜
+
+SDK 웹뷰(`LoginWebView` / `MyPageWebView` / `VerificationView`)에 로드되는 웹 페이지가 구현해야 하는 인터페이스입니다.
+**Android SDK와 메시지 이름·페이로드가 동일합니다** — 호출 방식만 플랫폼 관례를 따릅니다.
+(Android: `ESTLoginKit-Android/INTEGRATION_GUIDE.md` §4)
+
+### 웹 → 네이티브
+
+iOS는 `WKScriptMessageHandler`를 사용하므로 메시지 이름마다 핸들러가 하나씩 등록됩니다.
+
+```javascript
+window.webkit.messageHandlers.requestSnsLogin.postMessage(
+  JSON.stringify({ type: "sns-login", provider: "kakao" })
+);
+// provider: "kakao" | "naver" | "google" | "apple"
+
+window.webkit.messageHandlers.requestLogout.postMessage("");   // 네이티브 SNS SDK 캐시 로그인 상태 삭제
+window.webkit.messageHandlers.onLoginComplete.postMessage("");  // 로그인 완료 통지(관찰/로깅용)
+window.webkit.messageHandlers.onPasswordChanged.postMessage(""); // 마이페이지 비밀번호 변경 통지
+window.webkit.messageHandlers.onAccountDeleted.postMessage("");  // 마이페이지 회원 탈퇴 통지
+```
+
+> `requestSnsLogin`의 body는 **JSON 문자열**입니다(객체 아님). 나머지는 페이로드를 읽지 않으므로 아무 값이나 넣어도 됩니다.
+
+| 메시지 | 페이로드 | 동작 |
+|---|---|---|
+| `requestSnsLogin` | `{ type, provider }` JSON 문자열 | 네이티브 SNS 로그인 실행 → 아래 콜백으로 결과 반환 |
+| `requestLogout` | 없음 | 네이티브 SNS SDK 캐시 로그인 상태 삭제. **응답 없음** |
+| `onLoginComplete` | 없음 | 관찰/로깅 전용. ssoToken 회수·화면 종료는 `callbackURL`/`state` 매칭이 담당 |
+| `onPasswordChanged` | 없음 | 호스트 `onPasswordChanged` 콜백 호출 |
+| `onAccountDeleted` | 없음 | 호스트 `onAccountDeleted` 콜백 호출 |
+
+#### `requestLogout` — "다른 계정으로 로그인"
+
+카카오/네이버 네이티브 SDK에 캐싱된 로그인 상태를 지웁니다. **"다른 계정으로 로그인" 진입 시 웹이 호출해야 합니다.**
+
+호출하지 않으면 다음 `requestSnsLogin`에서 SNS SDK가 기존 토큰을 재사용해, 계정 선택창 없이 직전과 같은 계정으로 조용히 로그인됩니다.
+
+지우는 범위는 **네이티브 SNS SDK 토큰뿐**입니다.
+
+| 대상 | 정리 주체 |
+|---|---|
+| 카카오/네이버 SDK 토큰 | `requestLogout` (SDK — `ESTLoginManager.logout()` 호출) |
+| 웹 세션 쿠키 / 스토리지 | **웹** (자기 도메인이므로 직접 정리) |
+| 호스트 앱 accessToken / refreshToken | **호스트 앱** |
+
+응답 콜백이 없으므로 웹은 호출 후 곧바로 다음 동작(로그인 페이지 이동 등)을 진행하면 됩니다.
+
+### 네이티브 → 웹
+
+`requestSnsLogin`의 결과만 웹으로 돌아갑니다. 웹이 아래 전역 함수를 정의해두면 SDK가 호출합니다.
+(정의되지 않았으면 SDK는 `console.warn`만 남기고 넘어갑니다)
+
+```javascript
+window.onNativeSnsLoginResult = function (result) {
+  // result.provider, result.authorizeToken, result.refreshToken, result.ci
+  // result.email — 값이 있을 때만 키가 포함됨 (빈 값이면 키 자체가 생략)
+};
+window.onNativeSnsLoginError = function (error) {
+  // error.code: "cancelled" | "sdk_error" | "unsupported_provider"
+  // error.message, error.provider
+};
+```
+
+| `error.code` | 발생 조건 |
+|---|---|
+| `cancelled` | 사용자가 SNS 로그인 창을 취소 |
+| `sdk_error` | 카카오/네이버 SDK 오류 |
+| `unsupported_provider` | 네이티브 미지원 provider(`google` / `apple` 등) — 웹 OAuth 경로를 사용하세요 |
+
+> 카카오/네이버만 네이티브 SDK를 지원합니다. 구글/애플은 `unsupported_provider`가 반환되므로
+> 웹뷰 OAuth 경로를 쓰세요. **어떤 경우에도 응답 없이 끝나지 않으므로**, 웹은 성공/에러 콜백 중
+> 하나가 반드시 온다고 가정하고 로딩 상태를 처리하면 됩니다.
+
 ## 에러 처리
 
 ```swift

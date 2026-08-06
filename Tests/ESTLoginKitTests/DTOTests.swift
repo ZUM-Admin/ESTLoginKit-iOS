@@ -17,26 +17,38 @@ struct SNSLoginRequestPayloadTests {
         let json = #"{"type":"sns-login","provider":"kakao"}"#
         let dto = decode(json)
         #expect(dto?.type == "sns-login")
-        #expect(dto?.provider == .kakao)
+        #expect(dto?.provider == "kakao")
+        #expect(dto?.platform == .kakao)
     }
 
     @Test("모든 provider 디코딩")
     func decodesAllProviders() {
-        let cases: [(String, SNSLoginRequestPayload.Provider)] = [
+        let cases: [(String, LoginPlatform)] = [
             ("kakao", .kakao),
             ("naver", .naver)
         ]
         for (raw, expected) in cases {
             let json = #"{"type":"sns-login","provider":"\#(raw)"}"#
             let dto = decode(json)
-            #expect(dto?.provider == expected)
+            #expect(dto?.platform == expected)
         }
     }
 
-    @Test("알 수 없는 provider는 디코딩 실패")
-    func failsOnUnknownProvider() {
-        let json = #"{"type":"sns-login","provider":"twitter"}"#
-        #expect(decode(json) == nil)
+    @Test("대소문자가 섞여도 platform 매핑")
+    func mapsPlatformCaseInsensitively() {
+        #expect(decode(#"{"type":"sns-login","provider":"Kakao"}"#)?.platform == .kakao)
+        #expect(decode(#"{"type":"sns-login","provider":"NAVER"}"#)?.platform == .naver)
+    }
+
+    // 디코딩 자체는 통과시켜야 웹에 `unsupported_provider` 로 통지할 수 있다.
+    // (enum으로 받아 디코딩이 실패하면 어떤 provider가 거부됐는지 웹에 알려줄 수 없다)
+    @Test("네이티브 미지원 provider는 디코딩되고 platform만 nil")
+    func decodesUnsupportedProviderWithNilPlatform() {
+        for raw in ["google", "apple", "twitter"] {
+            let dto = decode(#"{"type":"sns-login","provider":"\#(raw)"}"#)
+            #expect(dto?.provider == raw)
+            #expect(dto?.platform == nil)
+        }
     }
 
     @Test("필드 누락 시 디코딩 실패")
