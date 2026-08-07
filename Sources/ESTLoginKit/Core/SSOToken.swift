@@ -88,6 +88,22 @@ extension ESTLoginManager {
     )
   }
 
+  /// est 웹의 임의 내부 경로로 이동하는 SSO 부트스트랩 요청.
+  ///
+  /// 마이페이지/로그인/본인인증처럼 전용 진입점이 없는 경로(예: 포인트 내역 `/mypage/pointhistory`)를
+  /// 세션 쿠키 없이 열 때 사용한다. 부트스트랩 동작은 `authorizedMypageRequest`와 동일하다.
+  ///
+  /// - Parameters:
+  ///   - accessToken: 앱이 보유한 유효한 accessToken. 만료 시 `AuthError.server(statusCode: 401)`.
+  ///   - path: 세션 수립 후 이동할 est 내부 경로. 자체 쿼리를 포함할 수 있고(`/mypage/pointhistory?tab=1`),
+  ///     est 절대 URL을 넘기면 path + query만 취한다. 외부 도메인은 웹이 홈으로 대체하므로 est 경로만 넘긴다.
+  public func authorizedRequest(accessToken: String, path: String) async throws -> URLRequest {
+    let ssoToken = try await issueSSOToken(accessToken: accessToken)
+    return URLRequest(
+      url: Self.ssoLoginURL(redirectURL: Self.redirectURLValue(from: path), ssoToken: ssoToken)
+    )
+  }
+
   private func requestSSOToken(apiBaseURL: String, accessToken: String) async throws -> String {
     guard let url = URL(string: "\(apiBaseURL)/auth/sso/sso-token") else {
       throw AuthError.unknown(nil)
@@ -145,6 +161,16 @@ extension ESTLoginManager {
   static func redirectURLValue(from url: URL) -> String {
     let query = url.query.map { "?\($0)" } ?? ""
     return url.path + query
+  }
+
+  /// 호스트가 문자열로 넘긴 목적지를 redirect_url 값으로 정규화한다.
+  /// 절대 URL이면 path + query만 취하고, 상대 경로는 앞의 `/`를 보장한다.
+  /// (웹은 `/`로 시작하는 내부 경로만 목적지로 인정한다)
+  static func redirectURLValue(from path: String) -> String {
+    if let url = URL(string: path), url.scheme != nil {
+      return redirectURLValue(from: url)
+    }
+    return path.hasPrefix("/") ? path : "/" + path
   }
 
   /// 쿼리 값 인코딩. 토큰은 AES256 암호화 문자열이라 `+` `=` `/` 등을 포함할 수 있고

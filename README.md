@@ -462,9 +462,19 @@ VerificationView(accessToken: accessToken) { result in ... }
 let mypageRequest = try await ESTLoginManager.shared.authorizedMypageRequest(accessToken: accessToken)
 let verificationRequest = try await ESTLoginManager.shared.authorizedVerificationRequest(accessToken: accessToken)
 
+// 전용 진입점이 없는 임의 경로 (예: 포인트 내역) — 호스트가 자체 웹뷰로 열어도 된다
+let request = try await ESTLoginManager.shared.authorizedRequest(
+    accessToken: accessToken,
+    path: "/mypage/pointhistory"
+)
+
 // 토큰만 직접 필요하면
 let ssoToken = try await ESTLoginManager.shared.issueSSOToken(accessToken: accessToken)
 ```
+
+> `authorizedRequest(accessToken:path:)`의 `path`는 est **내부 경로**입니다. 자체 쿼리를 포함할 수 있고
+> (`/mypage/pointhistory?tab=1`), est 절대 URL을 넘기면 path + query만 취합니다. 외부 도메인은 웹이 홈으로
+> 대체하므로 est 경로만 넘기세요.
 
 > accessToken이 만료됐거나 유효하지 않으면 `AuthError.server(statusCode: 401)`이 던져집니다.
 > 앱이 refreshToken으로 갱신한 뒤 재호출하세요. (SDK는 재시도하지 않습니다)

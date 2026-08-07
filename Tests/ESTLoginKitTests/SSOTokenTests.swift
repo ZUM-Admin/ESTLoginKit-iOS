@@ -64,3 +64,44 @@ struct SSOLoginURLTests {
         #expect(ESTLoginManager.redirectURLValue(from: url) == "/mypage/setting")
     }
 }
+
+// MARK: - 임의 경로 부트스트랩
+
+@Suite("임의 경로 redirect_url 정규화")
+struct RedirectPathNormalizationTests {
+
+    @Test("내부 경로는 그대로 쓰인다")
+    func keepsAbsolutePath() {
+        #expect(ESTLoginManager.redirectURLValue(from: "/mypage/pointhistory") == "/mypage/pointhistory")
+    }
+
+    @Test("앞의 슬래시가 없으면 붙인다")
+    func prependsLeadingSlash() {
+        // 웹은 `/`로 시작하는 내부 경로만 목적지로 인정한다
+        #expect(ESTLoginManager.redirectURLValue(from: "mypage/pointhistory") == "/mypage/pointhistory")
+    }
+
+    @Test("경로의 자체 쿼리는 보존된다")
+    func keepsQueryOfPath() {
+        #expect(ESTLoginManager.redirectURLValue(from: "/mypage/pointhistory?tab=1") == "/mypage/pointhistory?tab=1")
+    }
+
+    @Test("절대 URL을 넘기면 path + query만 취한다")
+    func stripsSchemeAndHost() {
+        let path = ESTLoginManager.redirectURLValue(from: "https://test.estoneid.com/mypage/pointhistory?tab=1")
+        #expect(path == "/mypage/pointhistory?tab=1")
+    }
+
+    @Test("정규화된 경로가 부트스트랩 URL에 1회 인코딩되어 실린다")
+    func buildsBootstrapURLWithPath() {
+        let url = ESTLoginManager.ssoLoginURL(
+            redirectURL: ESTLoginManager.redirectURLValue(from: "/mypage/pointhistory?tab=1"),
+            ssoToken: "sso"
+        )
+
+        #expect(url.path == "/auth/sso-login")
+        #expect(url.queryValue(for: "redirect_url") == "/mypage/pointhistory?tab=1")
+        // 인코딩이 깨지면 경로 안의 tab이 최상위 쿼리로 새어나온다
+        #expect(url.queryValue(for: "tab") == nil)
+    }
+}
