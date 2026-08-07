@@ -27,10 +27,20 @@ final class NaverAuthProvider: NSObject, AuthProvider {
     )
   }
 
+  /// 네이버 로그인 — `requestLogin` 대신 `reauthenticate`(`auth_type=reauthenticate`)를 쓴다.
+  ///
+  /// 인앱 브라우저(ASWebAuthenticationSession)는 Safari와 쿠키를 공유하고, 네이버 SDK가
+  /// `prefersEphemeralWebBrowserSession`을 `false`로 고정해둬서 이 쿠키를 끌 방법이 없다.
+  /// 그 결과 `requestLogin`은 앱에서 로그아웃해도 남아있는 네이버 세션으로 자동 통과해버려
+  /// 다른 계정으로 로그인할 수가 없다. 재인증은 쿠키 세션을 무시하고 로그인 화면을 띄우되
+  /// 앱 연동은 유지하므로 이미 동의한 항목을 다시 묻지 않는다(연동 해제와 다른 점).
+  ///
+  /// 네이버앱으로 로그인하는 경로에서는 SDK가 authType을 `.default`로 되돌리므로 이 설정이
+  /// 무시된다 — 그쪽은 네이버앱에 로그인된 계정을 따라가며, 계정 전환도 네이버앱에서 한다.
   @MainActor
   private func requestLogin() async throws -> (access: String, refresh: String) {
     return try await withCheckedThrowingContinuation { continuation in
-      NidOAuth.shared.requestLogin { result in
+      NidOAuth.shared.reauthenticate { result in
         switch result {
         case .success(let loginResult):
           continuation.resume(returning: (
