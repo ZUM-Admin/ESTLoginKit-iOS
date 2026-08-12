@@ -23,17 +23,30 @@ extension URL {
     return value
   }
 
-  /// 로그 출력용 문자열. `code` 쿼리에 ssoToken이 담기므로 값을 마스킹한다.
-  /// (ssoToken은 저장·로그 출력 금지)
+  /// 값을 그대로 남겨도 되는 쿼리 파라미터. 나머지는 전부 마스킹한다(deny by default).
+  ///
+  /// 외부 IdP 로그인은 우리가 모르는 이름으로 민감정보를 실어 나른다.
+  /// (Apple federation: `accountName`·`login_hint`=이메일, `token`·`relayState`=인증 토큰)
+  /// 허용 목록을 두지 않으면 새 파라미터가 생길 때마다 로그로 새어 나간다.
+  private static let logSafeQueryNames: Set<String> = [
+    "client_id", "type", "id", "status", "state", "redirect_url", "to",
+  ]
+
+  /// 로그 출력용 문자열. 호스트·경로와 파라미터 "이름"은 남기고 값은 마스킹한다.
+  ///
+  /// 로그는 `privacy: .public` 으로 시스템 로그에 남고 그대로 공유되기도 하므로,
+  /// 플로우 진단에 필요한 최소치만 남긴다. 빈 값(`?code=`)은 빈 채로 둔다 —
+  /// 빈 파라미터가 유효값을 덮어쓰는 종류의 버그를 로그에서 구분할 수 있어야 한다.
   var redactedForLog: String {
     guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false),
-          let items = components.queryItems,
-          items.contains(where: { $0.name == "code" && !($0.value ?? "").isEmpty })
+          let items = components.queryItems, !items.isEmpty
     else { return absoluteString }
 
-    components.queryItems = items.map {
-      $0.name == "code" && !($0.value ?? "").isEmpty
-        ? URLQueryItem(name: $0.name, value: "***") : $0
+    components.queryItems = items.map { item in
+      guard !Self.logSafeQueryNames.contains(item.name),
+            !(item.value ?? "").isEmpty
+      else { return item }
+      return URLQueryItem(name: item.name, value: "***")
     }
     return components.url?.absoluteString ?? absoluteString
   }
