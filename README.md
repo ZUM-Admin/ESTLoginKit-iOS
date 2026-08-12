@@ -317,6 +317,18 @@ https://estoneid.com/user/login
 1. **SSO 콜백**: `callbackURL`로 리다이렉트되면 쿼리의 `code` 값을 `ssoToken`으로 추출하여 `completion(ssoToken)`을 호출합니다. `LoginWebView`의 기본값은 `ESTLoginManager.shared.appCallbackURL`(`{baseURL}/auth/app-callback`)이며, `nil`을 명시하면 이 감지는 비활성화됩니다.
 2. **state URL 매칭 (ZUM 전용)**: 초기 URL의 `state` 쿼리 파라미터와 동일한 URL로 이동하면 `completion(nil)`을 호출합니다. 이 방식은 ZUM 서비스 전용이며, 일반적인 경우 SSO 콜백 방식을 사용하세요.
 
+#### 팝업 (외부 IdP 로그인)
+
+웹이 `window.open` 또는 `target="_blank"`으로 새 창을 열면 SDK가 **별도 팝업 화면**을 띄웁니다. 팝업 상단에는 닫기 버튼과 현재 도메인이 표시되며, 웹의 `window.close()` 호출이나 아래로 쓸어내리기로도 닫힙니다.
+
+Apple 회사 계정처럼 **외부 IdP(Microsoft Entra 등)와 연동된 로그인**이 이 경로를 사용합니다. 인증은 팝업 안에서 진행되고, 완료되면 팝업이 스스로 닫히며 부모 웹뷰가 콜백을 이어받습니다.
+
+팝업은 부모 웹뷰와 세션·쿠키·JS 브릿지를 공유하므로, 팝업 안에서 로그인이 완료돼도 `completion`이 정상 호출됩니다.
+
+> 약관·개인정보처리방침처럼 `target="_blank"`로 열리는 일반 링크도 같은 팝업으로 표시됩니다.
+
+> **2.2.1 이전 버전**은 팝업을 부모 웹뷰에 덮어써서, 빈 창으로 열리는 플로우(외부 IdP 연동 로그인 등)에서 화면이 비어 보이고 로그인을 완료할 수 없었습니다.
+
 `LoginWebView`는 다음 시그니처를 가집니다.
 
 ```swift
