@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import WebKit
 
 import ESTLoginKit
 
@@ -21,7 +22,7 @@ struct ContentView: View {
   @State private var webSheet: WebSheet?
 
   private struct WebSheet: Identifiable {
-    enum Kind: String { case mypage, verification, login }
+    enum Kind: String { case mypage, verification, login, popupTest }
 
     let kind: Kind
     /// 웹뷰 부트스트랩용 accessToken — 뷰에 넘기면 SDK가 ssoToken 발급→세션 수립까지 처리.
@@ -44,6 +45,10 @@ struct ContentView: View {
           Button("웹 로그인") { openLoginSheet() }
           Button("마이페이지") { openWebSheet(.mypage) }
           Button("본인인증") { openWebSheet(.verification) }
+        }
+
+        Section("디버그") {
+          Button("팝업 처리 테스트") { webSheet = WebSheet(kind: .popupTest, accessToken: nil) }
         }
 
         Section("상태") {
@@ -124,9 +129,68 @@ struct ContentView: View {
           }
           .ignoresSafeArea()
         }
+
+      case .popupTest:
+        popupTestWebView()
+          .ignoresSafeArea()
       }
     }
   }
+
+  // MARK: - 팝업 처리 테스트
+
+  /// `window.open` 처리 검증용. 회사 계정 없이 "팝업이 뜨는가"만 단독으로 확인한다.
+  ///
+  /// 로컬 파일(file://)은 SDK가 `load(URLRequest)`로 열어서 못 읽고, 로컬 http 서버는 ATS에
+  /// 걸린다. `loadHTMLString(baseURL:)`이면 SDK 무수정으로 https origin까지 확보된다.
+  private func popupTestWebView() -> some View {
+    LoginWebView(
+      url: URL(string: "https://example.com")!,  // 아래에서 테스트 HTML로 즉시 교체
+      callbackURL: nil,                          // 콜백/state 매칭이 중간에 끼어들지 않게
+      inspectable: true,
+      onWebViewCreated: { webView in
+        // WebViewController.setup()은 onWebViewCreated 직후 load(request)를 호출한다.
+        // 한 틱 미뤄야 테스트 HTML이 살아남는다.
+        DispatchQueue.main.async {
+          webView.loadHTMLString(Self.popupTestHTML, baseURL: URL(string: "https://example.com"))
+        }
+      }
+    )
+  }
+
+  private static let popupTestHTML = """
+  <!doctype html>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font: 17px -apple-system; padding: 24px; }
+    button, a { display: block; margin: 14px 0; padding: 14px; font-size: 16px; text-align: left; }
+    #log div { font: 13px ui-monospace; color: #046; padding: 2px 0; }
+  </style>
+  <h3>window.open 처리 테스트</h3>
+  <button onclick="caseA()">A. 빈 창 먼저 열고 이동 (federation 패턴)</button>
+  <button onclick="caseB()">B. window.open(url, '_blank')</button>
+  <a href="https://example.com" target="_blank">C. target="_blank" 링크</a>
+  <div id="log"></div>
+  <script>
+    function say(s) {
+      var d = document.createElement('div');
+      d.textContent = s;
+      document.getElementById('log').appendChild(d);
+      console.log('[popup-test] ' + s);
+    }
+    function caseA() {
+      var w = window.open('', '_blank');
+      say('A: window.open() 반환값 = ' + w);
+      if (!w) { say('A: 팝업 객체 없음 → 플로우 여기서 종료'); return; }
+      w.location = 'https://example.com';
+      say('A: location 설정 완료');
+    }
+    function caseB() {
+      var w = window.open('https://example.com', '_blank');
+      say('B: window.open() 반환값 = ' + w);
+    }
+  </script>
+  """
 
   // MARK: - Actions
 
