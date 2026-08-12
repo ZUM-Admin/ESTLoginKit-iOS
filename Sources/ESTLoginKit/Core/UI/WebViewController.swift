@@ -30,6 +30,9 @@ final class WebViewController: UIViewController {
   // 웹이 리다이렉트를 재시도해 callbackURL이 여러 번 매칭돼도 중복 전달되지 않는다.
   private var hasCompleted = false
 
+  // window.open / target="_blank" 으로 열린 팝업. 중첩 팝업은 지원하지 않고 교체한다.
+  private var popupViewController: PopupWebViewController?
+
   convenience init(
     url: URL,
     callbackURL: String? = nil,
@@ -145,6 +148,7 @@ final class WebViewController: UIViewController {
   /// UIKit에서 이 컨트롤러를 직접 present/push해 쓰는 경우, `onWebViewCreated`로
   /// webView를 강참조하는 브릿지(예: Hackle)를 붙였다면 화면을 닫을 때 직접 호출해 순환을 끊어야 한다.
   func teardown() {
+    dismissPopup(animated: false)
     WebViewMessage.allCases.forEach {
       webView.configuration.userContentController.removeScriptMessageHandler(forName: $0.rawValue)
     }
@@ -210,6 +214,7 @@ final class WebViewController: UIViewController {
       return
     }
     hasCompleted = true
+    dismissPopup(animated: false)
     onVerificationResult?(VerificationCompleteStatus.result(status: status, token: token))
   }
 
@@ -220,7 +225,40 @@ final class WebViewController: UIViewController {
       return
     }
     hasCompleted = true
+    // 팝업 안에서 로그인이 끝날 수 있다(외부 IdP). 호스트가 화면을 닫기 전에 팝업부터 내린다.
+    dismissPopup(animated: false)
     completion?(ssoToken)
+  }
+
+  // MARK: - Popup
+
+  /// JS 다이얼로그는 최상단에서 띄워야 한다. 이미 present 중인 VC 에서 present 하면 iOS 가 무시한다.
+  private var dialogPresenter: UIViewController { popupViewController ?? self }
+
+  private func showPopup(_ controller: PopupWebViewController) {
+    let present = { [weak self] in
+      guard let self else { return }
+      self.present(controller, animated: true)
+      controller.presentationController?.delegate = self
+    }
+
+    // 교체 시에는 dismiss 완료 후 present 해야 한다. 같은 런루프에서 겹치면 present 가 유실된다.
+    if let existing = popupViewController {
+      popupViewController = nil
+      existing.teardownWebView()
+      existing.dismiss(animated: false) { present() }
+    } else {
+      present()
+    }
+    popupViewController = controller
+  }
+
+  private func dismissPopup(animated: Bool) {
+    guard let popup = popupViewController else { return }
+    popupViewController = nil
+    popup.teardownWebView()
+    popup.dismiss(animated: animated)
+    ESTLog.debug("popup closed")
   }
 }
 
@@ -237,7 +275,8 @@ extension WebViewController: WKNavigationDelegate {
       decisionHandler(.allow)
       return
     }
-    ESTLog.debug("navigation: \(navigatingURL.redactedForLog)")
+    let scope = (webView === popupViewController?.webView) ? "popup " : ""
+    ESTLog.debug("\(scope)navigation: \(navigatingURL.redactedForLog)")
 
     // 항상 최신 code로 갱신한다. 첫 code 고정 시, 리다이렉트가 중간에 취소되고
     // 재시도 체인이 새 code를 발급받으면(estoneid는 재발급 시 이전 code 무효화)
@@ -469,11 +508,44 @@ extension WebViewController: WKUIDelegate {
     for navigationAction: WKNavigationAction,
     windowFeatures: WKWindowFeatures
   ) -> WKWebView? {
-    // target="_blank" / window.open() 은 동일 webView에서 이어서 로드
-    if navigationAction.targetFrame == nil, let url = navigationAction.request.url {
-      webView.load(URLRequest(url: url))
+    // 팝업을 부모 webView 에 로드해버리면 window.open() 이 null 을 반환해 opener 기반 플로우가
+    // 죽고, 빈 창(window.open(''))이면 부모가 about:blank 로 덮여 화면이 하얘진다.
+    // 외부 IdP 로 넘어가는 로그인이 이 경로를 탄다. → 실제 팝업 화면을 띄운다.
+
+    // 반드시 전달받은 configuration 으로 만들어야 opener 관계(window.opener / postMessage)가 산다.
+    let popup = WKWebView(frame: .zero, configuration: configuration)
+    popup.navigationDelegate = self
+    popup.uiDelegate = self
+    popup.allowsBackForwardNavigationGestures = true
+    // 팝업에서 다시 구글로 가는 경우를 위해 UA 우회를 승계한다.
+    popup.customUserAgent = webView.customUserAgent
+    if #available(iOS 16.4, *) {
+      popup.isInspectable = inspectable
     }
-    return nil
+
+    guard viewIfLoaded?.window != nil else {
+      // 화면에 붙기 전이면 present 할 수 없다. 부모에서 여는 기존 폴백으로 되돌린다.
+      ESTLog.debug("popup: not in window — falling back to parent load")
+      if let url = navigationAction.request.url {
+        webView.load(URLRequest(url: url))
+      }
+      return nil
+    }
+
+    ESTLog.debug("popup opened — \(navigationAction.request.url?.redactedForLog ?? "about:blank")")
+    showPopup(PopupWebViewController(webView: popup) { [weak self] in
+      self?.dismissPopup(animated: true)
+    })
+
+    // 요청 로드는 WebKit 이 반환된 webView 에 직접 수행한다. 여기서 load 하면 이중 로드가 된다.
+    return popup
+  }
+
+  /// 웹의 `window.close()` — 외부 IdP 인증을 마친 팝업이 스스로 닫는 경로.
+  func webViewDidClose(_ webView: WKWebView) {
+    guard popupViewController?.webView === webView else { return }
+    ESTLog.debug("popup requested close (window.close)")
+    dismissPopup(animated: true)
   }
 
   func webView(
@@ -484,7 +556,7 @@ extension WebViewController: WKUIDelegate {
   ) {
     let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
     alert.addAction(UIAlertAction(title: "확인", style: .default) { _ in completionHandler() })
-    present(alert, animated: true)
+    dialogPresenter.present(alert, animated: true)
   }
 
   func webView(
@@ -496,7 +568,7 @@ extension WebViewController: WKUIDelegate {
     let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
     alert.addAction(UIAlertAction(title: "취소", style: .cancel) { _ in completionHandler(false) })
     alert.addAction(UIAlertAction(title: "확인", style: .default) { _ in completionHandler(true) })
-    present(alert, animated: true)
+    dialogPresenter.present(alert, animated: true)
   }
 
   func webView(
@@ -512,6 +584,21 @@ extension WebViewController: WKUIDelegate {
     alert.addAction(UIAlertAction(title: "확인", style: .default) { _ in
       completionHandler(alert.textFields?.first?.text)
     })
-    present(alert, animated: true)
+    dialogPresenter.present(alert, animated: true)
+  }
+}
+
+
+// MARK: - UIAdaptivePresentationControllerDelegate
+
+extension WebViewController: UIAdaptivePresentationControllerDelegate {
+  /// 사용자가 팝업을 아래로 쓸어내려 닫은 경우 — 참조를 놓고 WebView 를 정리한다.
+  func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
+    guard let popup = popupViewController,
+          presentationController.presentedViewController === popup
+    else { return }
+    popupViewController = nil
+    popup.teardownWebView()
+    ESTLog.debug("popup dismissed by user")
   }
 }
