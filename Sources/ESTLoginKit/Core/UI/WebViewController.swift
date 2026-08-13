@@ -89,7 +89,6 @@ final class WebViewController: UIViewController {
     // 기본 UA 뒤에 앱 식별 토큰을 append (예: "... zumapp/3.13.3").
     // customUserAgent(전체 교체)와 달리 webView 생성 시점에 박혀서 첫 로드부터 적용되고,
     // navigator.userAgent를 비동기로 읽어 붙일 필요가 없다.
-    // Google 로그인 시에는 decidePolicyFor에서 customUserAgent로 덮어써 우회한다(우선순위 높음).
     if let externalUserAgent {
       config.applicationNameForUserAgent = externalUserAgent
     }
@@ -158,30 +157,6 @@ final class WebViewController: UIViewController {
     webView.removeFromSuperview()
     webView = nil  // VC의 강참조 해제 → webView(+associated Hackle 브릿지) dealloc → 순환 끊김
   }
-  // MARK: - Google Login UA Workaround
-
-  private var androidUserAgent: String {
-    // 실제 Chrome Android UA와 동일 포맷. `Build/...` 토큰은 Android WebView 전용
-    // 시그널이라 구글이 이걸 보면 embedded browser로 차단("안전하지 않을 수 있습니다").
-    var ua = "Mozilla/5.0 (Linux; Android 15; SM-S928N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.7151.91 Mobile Safari/537.36"
-    if let externalUserAgent {
-      ua += " \(externalUserAgent)"
-    }
-    return ua
-  }
-
-  private static let googleLoginURLFragments: [String] = [
-    // 감지 즉시 cancel→reload로 Android UA를 적용한다.
-    // (decidePolicyFor에서 UA만 바꾸면 현재 navigation에는 반영되지 않으므로 reload 필수)
-    "accounts.google.com",
-    "accounts.google.co.kr",
-  ]
-
-  private func isGoogleLoginURL(_ url: URL) -> Bool {
-    let absolute = url.absoluteString
-    return Self.googleLoginURLFragments.contains { absolute.contains($0) }
-  }
-  
   private func ssoToken(_ url: URL) -> String? {
     // 부트스트랩 URL(/auth/sso-login)의 code는 웹 세션 수립용 1회성 토큰이라
     // 로그인 완료 code로 수집하면 안 된다. (completion에 소진된 토큰이 전달됨)
@@ -285,16 +260,21 @@ extension WebViewController: WKNavigationDelegate {
       self.ssoToken = code
     }
 
-    // Google OAuth URL → Android UA로 교체 후 cancel→reload.
-    // (현재 navigation에는 UA 변경이 적용되지 않으므로 reload 필수.
-    //  이미 Android UA면 통과시켜 무한 reload 방지.)
-    if isGoogleLoginURL(navigatingURL), webView.customUserAgent != androidUserAgent {
-      ESTLog.debug("Google login URL — switching to Android UA & reloading")
-      webView.customUserAgent = androidUserAgent
-      decisionHandler(.cancel)
-      webView.load(URLRequest(url: navigatingURL))
-      return
-    }
+    // 구글 OAuth 용 UA 스왑은 **의도적으로 없다.**
+    //
+    // 예전엔 여기서 accounts.google.com 을 감지해 하드코딩된 Android Chrome UA 로 갈아끼우고
+    // cancel→reload 했다. 그런데 그 UA(Chrome 137)가 낡아서 구글이 오히려 차단하기 시작했다 —
+    // "브라우저 또는 앱이 안전하지 않을 수 있습니다" 로 로그인 자체가 막혔다.
+    //
+    // 실측 결과 WKWebView 기본 UA 로는 정상 통과한다.
+    //   Mozilla/5.0 (iPhone; CPU iPhone OS 18_1_1 like Mac OS X)
+    //   AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148
+    // Android 도 동일하게 기본 UA(`; wv` 포함)로 통과하는 것을 확인하고 스왑을 제거했다.
+    //
+    // 기기·OS 를 위장하는 하드코딩 UA 는 시간이 지나면 반드시 낡아 같은 사고를 반복한다.
+    // 구글이 정책을 조여 다시 차단하기 시작하면, 문자열을 새로 지어내지 말고 **실제 UA 에서
+    // 문제되는 토큰만 제거**하는 방식으로 접근하라. 앱 식별용 토큰은
+    // `applicationNameForUserAgent` 로 웹뷰 생성 시점에 이미 붙는다.
 
     // callback URL → ssoToken 추출 후 콜백 전달
     if let callbackURL,
