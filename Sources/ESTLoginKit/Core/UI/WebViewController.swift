@@ -400,7 +400,9 @@ extension WebViewController: WKScriptMessageHandler {
         ESTLog.error("trackEvent — invalid payload: \(message.body)")
         return
       }
-      ESTLog.debug("trackEvent — \(event.eventKey)")
+      // properties 까지 찍는다 — eventKey 만 찍으면 페이로드가 제대로 실렸는지 로그로 판별할 수 없다.
+      // (Android 는 원본 문자열을 통째로 찍는다. 로그 내용을 맞춰둔다)
+      ESTLog.debug("trackEvent — \(event.eventKey) properties=\(event.properties)")
       onWebEvent?(event)
 
     }
