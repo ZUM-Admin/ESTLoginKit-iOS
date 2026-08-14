@@ -20,7 +20,8 @@ iOS 소셜 로그인 · 마이페이지 · **본인인증**을 간편하게 통�
 | **로그인 URL 빌더** (`loginURL`, `silent`) | 본인인증을 **언제 띄울지(정책)** |
 | **마이페이지 화면** (SSO 부트스트랩) + 계정 이벤트 통지 콜백 | 화면 **present / dismiss** |
 | **로그아웃** (네이티브 SDK 토큰 정리) | 로그인 결과 후속 처리(서버 통신 등) |
-| **본인인증 화면** (SSO 부트스트랩) + **인증 여부 조회 API** | |
+| **본인인증 화면** (SSO 부트스트랩) + **인증 여부 조회 API** | 분석 이벤트 **적재**(Hackle 등) — SDK는 전달만 |
+| 웹 **분석 이벤트 브릿지** (`trackEvent` → `onWebEvent`) | |
 
 > 요약: SDK는 **"화면과 조회 수단"** 을 제공하고, **"토큰 수명 관리와 정책 판단"** 은 앱이 담당합니다.
 
@@ -38,6 +39,7 @@ iOS 소셜 로그인 · 마이페이지 · **본인인증**을 간편하게 통�
 | 마이페이지 (SSO 부트스트랩) | ✅ |
 | **본인인증 (분리형)** | ✅ |
 | **본인인증 여부 조회 API** | ✅ |
+| **웹 분석 이벤트 브릿지** (`trackEvent`) | ✅ (로그인 웹뷰) |
 
 ## 설치
 
@@ -340,6 +342,7 @@ LoginWebView(
     onWebViewCreated: ((WKWebView) -> Void)? = nil,
     onPasswordChanged: (() -> Void)? = nil,
     onAccountDeleted: (() -> Void)? = nil,
+    onWebEvent: ((ESTWebEvent) -> Void)? = nil,   // 웹 분석 이벤트 (§JS 브릿지 프로토콜 — trackEvent)
     completion: ((String?) -> Void)? = nil
 )
 ```
@@ -697,9 +700,14 @@ window.webkit.messageHandlers.requestLogout.postMessage("");   // 네이티브 S
 window.webkit.messageHandlers.onLoginComplete.postMessage("");  // 로그인 완료 통지(관찰/로깅용)
 window.webkit.messageHandlers.onPasswordChanged.postMessage(""); // 마이페이지 비밀번호 변경 통지
 window.webkit.messageHandlers.onAccountDeleted.postMessage("");  // 마이페이지 회원 탈퇴 통지
+
+window.webkit.messageHandlers.trackEvent.postMessage(            // 분석 이벤트 (아래 참고)
+  JSON.stringify({ event_key: "click__sns_login(app)", properties: { login_type: "naver" } })
+);
 ```
 
-> `requestSnsLogin`의 body는 **JSON 문자열**입니다(객체 아님). 나머지는 페이로드를 읽지 않으므로 아무 값이나 넣어도 됩니다.
+> `requestSnsLogin`의 body는 **JSON 문자열**입니다(객체 아님). `trackEvent`는 문자열·객체 모두 받습니다.
+> 나머지는 페이로드를 읽지 않으므로 아무 값이나 넣어도 됩니다.
 
 | 메시지 | 페이로드 | 동작 |
 |---|---|---|
@@ -708,6 +716,58 @@ window.webkit.messageHandlers.onAccountDeleted.postMessage("");  // 마이페이
 | `onLoginComplete` | 없음 | 관찰/로깅 전용. ssoToken 회수·화면 종료는 `callbackURL`/`state` 매칭이 담당 |
 | `onPasswordChanged` | 없음 | 호스트 `onPasswordChanged` 콜백 호출 |
 | `onAccountDeleted` | 없음 | 호스트 `onAccountDeleted` 콜백 호출 |
+| `trackEvent` | `{ event_key, properties }` | 호스트 `onWebEvent` 콜백 호출. **응답 없음** |
+
+#### `trackEvent` — 분석 이벤트
+
+웹이 심는 분석 이벤트를 호스트 앱으로 흘려보내는 **단일 채널**입니다. SDK는 페이로드를 해석하지 않고
+그대로 전달만 하며, 어느 도구(Hackle / Firebase 등)로 적재할지는 호스트가 정합니다.
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `event_key` | string | 필수 | 이벤트 식별자. `eventKey`(카멜)로 보내도 동일하게 처리 |
+| `properties` | object | 선택 | 스키마 없음. 웹이 담은 키를 그대로 호스트까지 전달. 생략 시 빈 객체 |
+
+body는 **문자열·객체 모두** 받습니다. 웹 구현이 어느 쪽으로 굳어져도 계약 불일치로 왕복하지 않게 하기
+위해서입니다.
+
+```javascript
+// 둘 다 동작
+window.webkit.messageHandlers.trackEvent.postMessage(JSON.stringify({ event_key: "view__identity" }));
+window.webkit.messageHandlers.trackEvent.postMessage({ event_key: "view__identity" });
+```
+
+이벤트마다 핸들러를 나누지 않은 이유는, 그렇게 하면 이벤트가 추가될 때마다 SDK 수정 → 배포 → 앱
+업데이트가 필요해지기 때문입니다. `event_key`로 구분하는 단일 채널이면 SDK는 그대로 두고 웹만 수정하면
+됩니다. (`requestSnsLogin` 등이 핸들러로 분리된 것은 네이티브가 각각 *다른 동작*을 하기 때문이며,
+분석 이벤트는 네이티브가 하는 일이 모두 같습니다)
+
+호스트는 뷰 파라미터로 받습니다.
+
+```swift
+LoginWebView(
+  accessToken: accessToken,
+  onWebEvent: { event in
+    Hackle.app()?.track(Hackle.event(key: event.eventKey, properties: event.properties))
+  },
+  completion: { ssoToken in /* 토큰 교환 */ }
+)
+```
+
+`ESTWebEvent`는 `eventKey`, `properties`(`[String: Any]`), `raw`(웹이 보낸 원본 문자열)를 가집니다.
+JSON `null`은 중첩 구조까지 키가 제거된 상태로 전달됩니다 — `NSNull`이 분석 SDK로 새어나가지 않게
+하기 위함입니다. 중첩 객체·배열은 그대로 전달되므로, flat한 값만 받는 분석 SDK에 넣기 전에 호스트가
+평탄화하세요.
+
+파싱에 실패하면 로그만 남기고 무시합니다 — 이벤트 문제로 로그인 흐름이 끊기지 않습니다.
+
+> **`event_key`로 분기하지 마세요.** 받은 그대로 넘기는 패스스루로 구현해야, 웹이 이벤트를 추가해도
+> 앱 배포 없이 그대로 적재됩니다. `switch eventKey` 화이트리스트를 두면 새 이벤트가 유실되어 이 구조의
+> 의미가 없어집니다.
+
+> **적용 범위.** 현재 **`LoginWebView`에만 배선**돼 있습니다. `MyPageWebView` / `VerificationView`는
+> 핸들러 자체는 등록돼 있어 호출은 되지만 콜백이 연결돼 있지 않아 무시됩니다.
+> (`ESTLoginConfiguration`에는 콜백을 두지 않았습니다 — 기존 콜백들과 동일하게 뷰 파라미터로만 받습니다)
 
 #### `requestLogout` — "다른 계정으로 로그인"
 
