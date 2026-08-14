@@ -16,6 +16,7 @@ final class WebViewController: UIViewController {
   private let onWebViewCreated: ((WKWebView) -> Void)?
   private let onPasswordChanged: (() -> Void)?
   private let onAccountDeleted: (() -> Void)?
+  private let onWebEvent: ((ESTWebEvent) -> Void)?
   private let onVerificationResult: ((Result<VerificationResult, AuthError>) -> Void)?
   private let completion: ((String?) -> Void)?
 
@@ -41,6 +42,7 @@ final class WebViewController: UIViewController {
     onWebViewCreated: ((WKWebView) -> Void)? = nil,
     onPasswordChanged: (() -> Void)? = nil,
     onAccountDeleted: (() -> Void)? = nil,
+    onWebEvent: ((ESTWebEvent) -> Void)? = nil,
     onVerificationResult: ((Result<VerificationResult, AuthError>) -> Void)? = nil,
     completion: ((String?) -> Void)? = nil
   ) {
@@ -52,6 +54,7 @@ final class WebViewController: UIViewController {
       onWebViewCreated: onWebViewCreated,
       onPasswordChanged: onPasswordChanged,
       onAccountDeleted: onAccountDeleted,
+      onWebEvent: onWebEvent,
       onVerificationResult: onVerificationResult,
       completion: completion
     )
@@ -66,6 +69,7 @@ final class WebViewController: UIViewController {
     onWebViewCreated: ((WKWebView) -> Void)? = nil,
     onPasswordChanged: (() -> Void)? = nil,
     onAccountDeleted: (() -> Void)? = nil,
+    onWebEvent: ((ESTWebEvent) -> Void)? = nil,
     onVerificationResult: ((Result<VerificationResult, AuthError>) -> Void)? = nil,
     completion: ((String?) -> Void)? = nil
   ) {
@@ -76,6 +80,7 @@ final class WebViewController: UIViewController {
     self.onWebViewCreated = onWebViewCreated
     self.onPasswordChanged = onPasswordChanged
     self.onAccountDeleted = onAccountDeleted
+    self.onWebEvent = onWebEvent
     self.onVerificationResult = onVerificationResult
     self.completion = completion
     // 빈 state("?state=")를 허용하면 hasPrefix("")가 항상 true가 되어
@@ -382,12 +387,28 @@ extension WebViewController: WKScriptMessageHandler {
       ESTLog.debug("onAccountDeleted")
       onAccountDeleted?()
 
+    case .trackEvent:
+      // 웹이 심는 분석 이벤트 — SDK는 해석하지 않고 호스트로 그대로 넘긴다.
+      //
+      //   window.webkit.messageHandlers.trackEvent.postMessage(JSON.stringify({
+      //     event_key: "click__sns_login(app)",
+      //     properties: { login_type: "naver" }
+      //   }));
+      //
+      // 파싱 실패는 로그만 남긴다. 이벤트 하나가 로그인 흐름을 막으면 안 된다.
+      guard let event = WebEventParser.parse(message.body) else {
+        ESTLog.error("trackEvent — invalid payload: \(message.body)")
+        return
+      }
+      ESTLog.debug("trackEvent — \(event.eventKey)")
+      onWebEvent?(event)
+
     }
   }
 
   private func handleAction(_ action: WebViewMessage, payload: Decodable) {
     switch action {
-    case .requestLogout, .onLoginComplete, .onPasswordChanged, .onAccountDeleted:
+    case .requestLogout, .onLoginComplete, .onPasswordChanged, .onAccountDeleted, .trackEvent:
       // userContentController에서 직접 처리됨
       break
 

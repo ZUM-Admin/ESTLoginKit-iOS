@@ -13,6 +13,19 @@ import WebKit
 /// - `init(url:)` / `init(request:)` — URL·커스텀 요청으로 직접 진입 (신규 로그인 등)
 /// - `init(accessToken:)` — 마이페이지/본인인증과 동일하게 ssoToken 발급 → `/auth/sso-login` 부트스트랩 후
 ///   로그인 페이지로 진입. 발급 중 로딩 표시, 실패 시 `onError`.
+///
+/// 웹이 심는 분석 이벤트는 `onWebEvent`로 전달됩니다. SDK는 이벤트를 해석하지 않으므로
+/// 어떤 도구로 보낼지는 호스트가 정합니다.
+///
+/// ```swift
+/// LoginWebView(
+///   accessToken: accessToken,
+///   onWebEvent: { event in
+///     Hackle.app()?.track(Hackle.event(key: event.eventKey, properties: event.properties))
+///   },
+///   completion: { ssoToken in /* 토큰 교환 */ }
+/// )
+/// ```
 public struct LoginWebView: View {
 
   private enum Source {
@@ -29,6 +42,7 @@ public struct LoginWebView: View {
   private let onWebViewCreated: ((WKWebView) -> Void)?
   private let onPasswordChanged: (() -> Void)?
   private let onAccountDeleted: (() -> Void)?
+  private let onWebEvent: ((ESTWebEvent) -> Void)?
   private let onError: ((Error) -> Void)?
   private let completion: ((String?) -> Void)?
 
@@ -42,6 +56,7 @@ public struct LoginWebView: View {
     onWebViewCreated: ((WKWebView) -> Void)? = nil,
     onPasswordChanged: (() -> Void)? = nil,
     onAccountDeleted: (() -> Void)? = nil,
+    onWebEvent: ((ESTWebEvent) -> Void)? = nil,
     completion: ((String?) -> Void)? = nil
   ) {
     self.init(
@@ -52,6 +67,7 @@ public struct LoginWebView: View {
       onWebViewCreated: onWebViewCreated,
       onPasswordChanged: onPasswordChanged,
       onAccountDeleted: onAccountDeleted,
+      onWebEvent: onWebEvent,
       completion: completion
     )
   }
@@ -65,6 +81,7 @@ public struct LoginWebView: View {
     onWebViewCreated: ((WKWebView) -> Void)? = nil,
     onPasswordChanged: (() -> Void)? = nil,
     onAccountDeleted: (() -> Void)? = nil,
+    onWebEvent: ((ESTWebEvent) -> Void)? = nil,
     completion: ((String?) -> Void)? = nil
   ) {
     self.source = .request(request)
@@ -74,6 +91,7 @@ public struct LoginWebView: View {
     self.onWebViewCreated = onWebViewCreated
     self.onPasswordChanged = onPasswordChanged
     self.onAccountDeleted = onAccountDeleted
+    self.onWebEvent = onWebEvent
     self.onError = nil
     self.completion = completion
   }
@@ -96,6 +114,7 @@ public struct LoginWebView: View {
     onWebViewCreated: ((WKWebView) -> Void)? = nil,
     onPasswordChanged: (() -> Void)? = nil,
     onAccountDeleted: (() -> Void)? = nil,
+    onWebEvent: ((ESTWebEvent) -> Void)? = nil,
     onError: ((Error) -> Void)? = nil,
     completion: ((String?) -> Void)? = nil
   ) {
@@ -106,6 +125,7 @@ public struct LoginWebView: View {
     self.onWebViewCreated = onWebViewCreated
     self.onPasswordChanged = onPasswordChanged
     self.onAccountDeleted = onAccountDeleted
+    self.onWebEvent = onWebEvent
     self.onError = onError
     self.completion = completion
   }
@@ -134,6 +154,7 @@ public struct LoginWebView: View {
       onWebViewCreated: onWebViewCreated,
       onPasswordChanged: onPasswordChanged,
       onAccountDeleted: onAccountDeleted,
+      onWebEvent: onWebEvent,
       completion: completion
     )
   }
@@ -166,6 +187,7 @@ private struct LoginWebRepresentable: UIViewControllerRepresentable {
   let onWebViewCreated: ((WKWebView) -> Void)?
   let onPasswordChanged: (() -> Void)?
   let onAccountDeleted: (() -> Void)?
+  let onWebEvent: ((ESTWebEvent) -> Void)?
   let completion: ((String?) -> Void)?
 
   func makeUIViewController(context: Context) -> WebViewController {
@@ -177,6 +199,7 @@ private struct LoginWebRepresentable: UIViewControllerRepresentable {
       onWebViewCreated: onWebViewCreated,
       onPasswordChanged: onPasswordChanged,
       onAccountDeleted: onAccountDeleted,
+      onWebEvent: onWebEvent,
       completion: completion
     )
   }
