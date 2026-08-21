@@ -19,6 +19,9 @@ final class PopupWebViewController: UIViewController {
 
   let webView: WKWebView
 
+  /// 시트로 present 되면 safe area 상단이 카드 모서리와 맞붙어 바가 답답해 보인다. 그만큼 띄운다.
+  private let inset: CGFloat = 8
+
   private let onClose: () -> Void
   private let hostLabel = UILabel()
   private var urlObservation: NSKeyValueObservation?
@@ -71,8 +74,8 @@ final class PopupWebViewController: UIViewController {
     let hairline = 1 / max(view.traitCollection.displayScale, 1)
 
     NSLayoutConstraint.activate([
-      bar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-      bar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+      bar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: inset),
+      bar.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: inset),
       bar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
       bar.heightAnchor.constraint(equalToConstant: 48),
 
